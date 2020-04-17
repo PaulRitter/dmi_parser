@@ -5,6 +5,11 @@ namespace DMI_Parser
 {
     public class DMI
     {
+        float version;
+        int width;
+        int height;
+        DMIState[] states;
+
         public static DMI fromFile(String filepath){
             String[] metadata = getMetadata(filepath);
             foreach (var item in metadata)
