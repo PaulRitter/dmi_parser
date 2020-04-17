@@ -122,7 +122,6 @@ namespace DMI_Parser
                         }
                         break;
                     default:
-                        Console.WriteLine(current[0]);
                         throw new UnknownKeywordException("Unknown Keyword received" ,current[0], current[1]);
                 }
             }
