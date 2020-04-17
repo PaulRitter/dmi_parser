@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using MetadataExtractor;
 
 namespace DMI_Parser
@@ -8,37 +10,157 @@ namespace DMI_Parser
         float version;
         int width;
         int height;
-        DMIState[] states;
+        List<DMIState> states;
 
-        public static DMI fromFile(String filepath){
-            String[] metadata = getMetadata(filepath);
-            foreach (var item in metadata)
-            {
-                Console.WriteLine(item);    
-            }
-
- 
-            return null;
+        private DMI(float version, int width, int height, List<DMIState> states){
+            this.version = version;
+            this.width = width;
+            this.height = height;
+            this.states = states;
         }
 
-        private static String[] getMetadata(String filepath){
+        public static DMI fromFile(String filepath){
+            //get metadata
+            IEnumerator metadata = getDMIMetadata(filepath).GetEnumerator();
+
+            //dmi info
+            float version = -1;
+            int width = -1;
+            int height = -1;
+
+
+            //for building states
+            List<DMIState> states = new List<DMIState>();
+            bool readingState = false;
+            string stateID = null;
+            int stateDirs = -1;
+            int stateFrames = -1;
+            float[] stateDelays = null;
+            int stateLoop = 0;
+            bool stateRewind = false;
+
+            //parse data
+            while (metadata.MoveNext())
+            {
+                string[] current = ((string)metadata.Current).Trim().Split('='); //make this regex
+                if(current.Length != 2){
+
+                }
+                switch (current[0].Trim())
+                {
+                    case "version":
+                        if(version != -1){
+                            throw new StateArgumentDuplicateException("Argument duplicated", "version");
+                        }
+                        version = float.Parse(current[1].Replace('.',','));
+                        break;
+                    case "width":
+                        if(width != -1){
+                            throw new StateArgumentDuplicateException("Argument duplicated", "width");
+                        }
+                        width = int.Parse(current[1]);
+                        break;
+                    case "height":
+                        if(height != -1){
+                            throw new StateArgumentDuplicateException("Argument duplicated", "height");
+                        }
+                        height = int.Parse(current[1]);
+                        break;
+                    case "state":
+                        if(readingState){
+                            if(stateDirs == -1 ||stateFrames == -1 || stateID == null){
+                                throw new InvalidStateException("Invalid State at end of state-parsing", stateID, stateDirs, stateFrames, stateDelays);
+                            }
+                            states.Add(new DMIState(stateID, stateDirs, stateFrames, stateDelays, stateLoop, stateRewind));
+                            stateID = null;
+                            stateDirs = -1;
+                            stateFrames = -1;
+                            stateDelays = null;
+                            stateLoop = 0;
+                            stateRewind = false;
+                        }
+                        stateID = current[1].Trim();
+                        readingState = true;
+                        break;
+                    case "dirs":
+                        if(stateDirs != -1){
+                            throw new StateArgumentDuplicateException("Argument duplicated", "dirs");
+                        }
+                        stateDirs = int.Parse(current[1]);
+                        break;
+                    case "frames":
+                        if(stateFrames != -1){
+                            throw new StateArgumentDuplicateException("Argument duplicated", "frames");
+                        }
+                        stateFrames = int.Parse(current[1]);
+                        break;
+                    case "delay":
+                        if(stateDelays != null){
+                            throw new StateArgumentDuplicateException("Argument duplicated", "delay");
+                        }
+                        string[] raw_delays = current[1].Split(',');
+                        stateDelays = new float[raw_delays.Length];
+                        int i = 0;
+                        foreach (string delay in raw_delays)
+                        {
+                            stateDelays[i] = float.Parse(delay.Replace('.',','));
+                            i++;
+                        }
+                        break;
+                    case "loop":
+                        if(stateLoop != 0){
+                            throw new StateArgumentDuplicateException("Argument duplicated", "loop");
+                        }
+                        stateLoop = int.Parse(current[1]);
+                        break;
+                    case "rewind":
+                        if(stateRewind){
+                            throw new StateArgumentDuplicateException("Argument duplicated", "rewind");
+                        }
+                        if(current[1].Trim() == "1"){
+                            stateRewind = true;
+                        }
+                        break;
+                    default:
+                        Console.WriteLine(current[0]);
+                        throw new UnknownKeywordException("Unknown Keyword received" ,current[0], current[1]);
+                }
+            }
+            
+            return new DMI(version, width, height, states);
+        }
+
+        private static String[] getDMIMetadata(String filepath){
             var directories = ImageMetadataReader.ReadMetadata(filepath);
 
-            String[] dmi_metadata = null;
             foreach (var directory in directories)
             {
                 foreach (var tag in directory.Tags){
                     if(tag.Name != "Textual Data")
                         continue;
-                    dmi_metadata = tag.Description.Split(
+                    string[] raw_metadata = tag.Description.Split(
                         new[] { "\r\n", "\r", "\n" },
                         StringSplitOptions.None
                     );
-                    if(dmi_metadata[0] == "Description: # BEGIN DMI")
+                    int start = -1;
+                    int end = -1;
+                    for (int i = 0; i < raw_metadata.Length; i++)
+                    {
+                        if(raw_metadata[i].Contains("# BEGIN DMI")){
+                            start = i+1;
+                        }else if(raw_metadata[i].Contains("# END DMI")){
+                            end = i;
+                        }
+                    }
+                    
+                    if(end != -1 && start != -1){
+                        string[] dmi_metadata = new string[end-start];
+                        Array.Copy(raw_metadata, start, dmi_metadata, 0, end-start);                        
                         return dmi_metadata;
-                    Console.WriteLine("["+tag.Name+"]: "+tag.Description);
+                    }
                 }
 
+                //TODO better error reporting here
                 if (directory.HasError)
                 {
                     foreach (var error in directory.Errors)
@@ -46,7 +168,7 @@ namespace DMI_Parser
                 }
             }
 
-            return dmi_metadata;
+            return null;
         }
     }
 }

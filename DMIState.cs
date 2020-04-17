@@ -8,12 +8,17 @@ namespace DMI_Parser
         private int dirs;
         private int frames;
         private float[] delays;
+        private int loop; // 0 => infinite
+        private bool rewind;
 
-        public DMIState(string id, int dirs, int frames, float[] delays){
+        public DMIState(string id, int dirs, int frames, float[] delays, int loop, bool rewind){
             setID(id);
             setDirs(dirs);
             setFrames(frames);
-            setDelays(delays);
+            if(delays != null)
+                setDelays(delays);
+            this.loop = loop;
+            this.rewind = rewind;
         }
 
         public void setID(string id){
@@ -43,13 +48,29 @@ namespace DMI_Parser
             }
 
             if(this.delays.Length != delays.Length){
-                throw new DelayCountMismatchException("Delaycount doesn't match", this.delays.Length, delays.length);
+                throw new DelayCountMismatchException("Delaycount doesn't match", this.delays.Length, delays.Length);
             }
             this.delays = delays;
         }
 
         public void setDelay(int index, float delay){
-            delays[index] = delay; //will throw IndexOutOfRangeException, indended
+            delays[index] = delay; //will throw IndexOutOfRangeException if index invalid, indended
+        }
+
+        public override string ToString(){
+            string res = "["+id+"]\nDirs: "+dirs+"\nFrames: "+frames+"\nLoop: "; 
+            if(loop == 0){
+                res += "indefinitely\n";
+            }else{
+                res += loop+"\n";
+            }
+            if(delays != null){
+                res += "Delays: "+string.Join(" - ", delays)+"\n";
+            }
+            if(rewind){
+                res += "Rewind: true\n";
+            }
+            return res;
         }
     }
 }
