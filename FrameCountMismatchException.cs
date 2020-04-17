@@ -7,10 +7,20 @@ namespace DMI_Parser
     [Serializable]
     public class FrameCountMismatchException : Exception
     {
-        public FrameCountMismatchException(string message)
-            : base(message) { }
+        public readonly DMIState sourceState;
 
-        public FrameCountMismatchException(string message, Exception inner)
-            : base(message, inner) { }
+        public FrameCountMismatchException(string message, DMIState sourceState)
+            : base(message) {
+                this.sourceState = sourceState;
+            }
+
+        public FrameCountMismatchException(string message, Exception inner, DMIState sourceState)
+            : base(message, inner) {
+                this.sourceState = sourceState;
+            }
+
+        public override string ToString(){
+            return base.ToString() + "\n" + sourceState;
+        }
     }
 }

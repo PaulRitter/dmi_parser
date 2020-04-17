@@ -15,5 +15,10 @@ namespace DMI_Parser
             : base(message, inner) {
                 this.argumentID = argumentID;
             }
+        
+        public override string ToString(){
+            return base.ToString() + "\nArgumentID: "+argumentID;
+        }
+
     }
 }
