@@ -26,7 +26,7 @@ namespace DMI_Parser
 
         public void setFrames(int frames){
             if(frames < 1){
-                //TODO throw FrameCountInvalidException
+                throw new FrameCountInvalidException("Frame count invalid, only Integers > 1 are allowed", frames);
             }
 
             this.frames = frames;
@@ -39,11 +39,11 @@ namespace DMI_Parser
 
         public void setDelays(float[] delays){
             if((this.delays == null) && frames == 1){
-                //TODO throw FrameCountMismatchException
+                throw new FrameCountMismatchException("Only one Frame cannot allow delays");
             }
 
             if(this.delays.Length != delays.Length){
-                //TODO throw DelayCountInvalidException
+                throw new DelayCountMismatchException("Delaycount doesn't match", this.delays.Length, delays.length);
             }
             this.delays = delays;
         }
