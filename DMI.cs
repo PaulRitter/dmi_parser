@@ -8,10 +8,10 @@ namespace DMI_Parser
 {
     public class DMI
     {
-        float version;
-        int width;
-        int height;
-        List<DMIState> states;
+        public readonly float version;
+        public readonly int width;
+        public readonly int height;
+        public List<DMIState> states;
 
         private DMI(float version, int width, int height, List<DMIState> states){
             this.version = version;
@@ -38,6 +38,7 @@ namespace DMI_Parser
 
 
             //for building states
+            int position = 0;
             List<DMIState> states = new List<DMIState>();
             bool readingState = false;
             string stateID = null;
@@ -54,9 +55,6 @@ namespace DMI_Parser
             while (metadata.MoveNext())
             {
                 string[] current = ((string)metadata.Current).Trim().Split('='); //make this regex
-                if(current.Length != 2){
-
-                }
                 switch (current[0].Trim())
                 {
                     case "version":
@@ -82,7 +80,7 @@ namespace DMI_Parser
                             if(stateDirs == -1 ||stateFrames == -1 || stateID == null){
                                 throw new InvalidStateException("Invalid State at end of state-parsing", stateID, stateDirs, stateFrames, stateDelays);
                             }
-                            states.Add(new DMIState(stateID, stateDirs, stateFrames, stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots, string.Join("\n",raw)));
+                            states.Add(new DMIState(position++, stateID, stateDirs, stateFrames, stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots, string.Join("\n",raw)));
                             stateID = null;
                             stateDirs = -1;
                             stateFrames = -1;

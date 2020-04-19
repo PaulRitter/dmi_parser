@@ -5,6 +5,7 @@ namespace DMI_Parser
 {
     public class DMIState
     {
+        private int position;
         private string id;
         private int dirs;
         private int frames;
@@ -15,7 +16,8 @@ namespace DMI_Parser
         private List<Hotspot> hotspots;
         private string rawParserData;
 
-        public DMIState(string id, int dirs, int frames, float[] delays, int loop, bool rewind, bool movement, List<Hotspot> hotspots, string rawParserData){
+        public DMIState(int position, string id, int dirs, int frames, float[] delays, int loop, bool rewind, bool movement, List<Hotspot> hotspots, string rawParserData){
+            this.position = position;
             this.rawParserData = rawParserData;
             this.loop = loop;
             this.rewind = rewind;
