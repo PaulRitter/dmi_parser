@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using MetadataExtractor;
+using System.IO;
 
 namespace DMI_Parser
 {
@@ -20,8 +21,15 @@ namespace DMI_Parser
         }
 
         public static DMI fromFile(String filepath){
+            FileStream stream = File.Open(filepath, FileMode.Open);
+            DMI result = fromFile(stream);
+            stream.Close();
+            return result;
+        }
+
+        public static DMI fromFile(FileStream stream){
             //get metadata
-            IEnumerator metadata = getDMIMetadata(filepath).GetEnumerator();
+            IEnumerator metadata = getDMIMetadata(stream).GetEnumerator();
 
             //dmi info
             float version = -1;
@@ -156,12 +164,12 @@ namespace DMI_Parser
             return new DMI(version, width, height, states);
         }
 
-        private static String[] getDMIMetadata(String filepath){
-            IReadOnlyList<Directory> directories;
+        private static String[] getDMIMetadata(FileStream stream){
+            IReadOnlyList<MetadataExtractor.Directory> directories;
             try{
-                directories = ImageMetadataReader.ReadMetadata(filepath);
+                directories = ImageMetadataReader.ReadMetadata(stream);
             }catch(ImageProcessingException e){
-                throw new InvalidFileException("File could not be read as a .dmi", e, filepath);
+                throw new InvalidFileException("File could not be read as a .dmi", e);
             }
 
             foreach (var directory in directories)
