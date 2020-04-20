@@ -13,12 +13,14 @@ namespace DMI_Parser
         public readonly int width;
         public readonly int height;
         public List<DMIState> states;
+        public Bitmap full_image;
 
-        private DMI(float version, int width, int height, List<DMIState> states){
+        private DMI(float version, int width, int height, List<DMIState> states, Bitmap full_image){
             this.version = version;
             this.width = width;
             this.height = height;
             this.states = states;
+            this.full_image = full_image;
         }
 
         public static DMI fromFile(String filepath){
@@ -58,6 +60,7 @@ namespace DMI_Parser
             //parse data
             while (metadata.MoveNext())
             {
+                Console.WriteLine(metadata.Current);
                 string[] current = ((string)metadata.Current).Trim().Split('='); //make this regex
                 switch (current[0].Trim())
                 {
@@ -164,8 +167,28 @@ namespace DMI_Parser
                         throw new UnknownKeywordException("Unknown Keyword received", stateID, current[0], current[1]);
                 }
             }
+
+            //evil copy pasta
+            if(readingState){
+                if(stateDirs == -1 ||stateFrames == -1 || stateID == null){
+                    throw new InvalidStateException("Invalid State at end of state-parsing", stateID, stateDirs, stateFrames, stateDelays);
+                }
+                DMIState newState = new DMIState(width, height, position++, stateID, stateDirs, stateFrames, stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots, string.Join("\n",raw), full_image, offset);
+                states.Add(newState);
+                offset = newState.getEndOffset();
+                stateID = null;
+                stateDirs = -1;
+                stateFrames = -1;
+                stateDelays = null;
+                stateLoop = 0;
+                stateRewind = false;
+                stateMovement = false;
+                stateHotspots = new List<Hotspot>();
+                raw = new List<string>();
+            }
+
             
-            return new DMI(version, width, height, states);
+            return new DMI(version, width, height, states, full_image);
         }
 
         private static String[] getDMIMetadata(FileStream stream){

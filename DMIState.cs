@@ -6,19 +6,19 @@ namespace DMI_Parser
 {
     public class DMIState
     {
-        private int width;
-        private int height;
-        private int position;
-        private string id;
-        private int dirs;
-        private int frames;
+        public readonly int width;
+        public readonly int height;
+        public readonly int position;
+        public string id;
+        public int dirs;
+        public int frames;
         private float[] delays;
         private int loop; // 0 => infinite
         private bool rewind;
         private bool movement;
         private List<Hotspot> hotspots;
         private string rawParserData;
-        private Bitmap[] images; //index is dir + dir*frame
+        public Bitmap[,] images; //index is dir + dir*frame
         //indexing this way lets us just walk through the array when saving -> images already in the correct order
         private Point start_offset;
         private Point end_offset;
@@ -58,19 +58,18 @@ namespace DMI_Parser
 
 
         public Bitmap getImage(int dir, int frame){
-            return images[dir + dirs * frame];
+            return images[dir,frame];
         }
 
         public void cutImages(Bitmap full_image, Point offset){
             int frame = 0;
             int dir = 0;
-            images = new Bitmap[dirs*frames];
+            images = new Bitmap[dirs,frames];
             for (int y = offset.Y; y < full_image.Height; y+=height)
             {
                 for (int x = offset.X; x < full_image.Width; x+=width)
                 {
-                    int i = dir + frame * dirs;
-                    images[i] = cutSingleImage(full_image, new Point(x,y));
+                    images[dir,frame] = cutSingleImage(full_image, new Point(x,y));
                     dir++;
                     if(dir == dirs){
                         dir = 0;
@@ -78,7 +77,13 @@ namespace DMI_Parser
                     }
                     if(frame == frames){
                         //we are done with our segment
-                        end_offset = new Point(x + width, y + height);
+                        int endwidth = x + width;
+                        int endheight = y;
+                        if(endwidth >= full_image.Width){
+                            endwidth = 0;
+                            endheight += height;
+                        }
+                        end_offset = new Point(endwidth, endheight);
                         return;
                     }
                 }
@@ -86,9 +91,12 @@ namespace DMI_Parser
         }
 
         public Bitmap cutSingleImage(Bitmap full_image, Point offset){
+            Rectangle source_rect = new Rectangle(offset.X, offset.Y, width, height);
+            Rectangle dest_rect = new Rectangle(0, 0, width, height);
+
             Bitmap res = new Bitmap(width, height);
-            using(var graphic = Graphics.FromImage(res)){
-                graphic.DrawImage(full_image, offset.X, offset.Y, width, height);
+            using(var g = Graphics.FromImage(res)){
+                g.DrawImage(full_image, dest_rect, source_rect, GraphicsUnit.Pixel);
                 return res;
             }
         }
@@ -157,6 +165,8 @@ namespace DMI_Parser
             {
                 res += " - "+item+"\n";
             }
+
+            res += $"Images: {images.Length}\n";
 
             res += "Raw Data:\n"+rawParserData;
             return res;
