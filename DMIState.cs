@@ -1,10 +1,13 @@
 using System;
+using System.Drawing;
 using System.Collections.Generic;
 
 namespace DMI_Parser
 {
     public class DMIState
     {
+        private int width;
+        private int height;
         private int position;
         private string id;
         private int dirs;
@@ -15,14 +18,21 @@ namespace DMI_Parser
         private bool movement;
         private List<Hotspot> hotspots;
         private string rawParserData;
+        private Bitmap[] images; //index is dir + dir*frame
+        //indexing this way lets us just walk through the array when saving -> images already in the correct order
+        private Point start_offset;
+        private Point end_offset;
 
-        public DMIState(int position, string id, int dirs, int frames, float[] delays, int loop, bool rewind, bool movement, List<Hotspot> hotspots, string rawParserData){
+        public DMIState(int width, int height, int position, string id, int dirs, int frames, float[] delays, int loop, bool rewind, bool movement, List<Hotspot> hotspots, string rawParserData, Bitmap full_image, Point img_offset){
+            this.width = width;
+            this.height = height;
             this.position = position;
             this.rawParserData = rawParserData;
             this.loop = loop;
             this.rewind = rewind;
             this.movement = movement;
-            this.hotspots = hotspots; //TOD maybe validate
+            this.hotspots = hotspots; //TODO validate
+            this.start_offset = img_offset;
             setID(id);
             setDirs(dirs);
 
@@ -38,7 +48,52 @@ namespace DMI_Parser
                 }
                 setDelays(delays);
             }
+
+            cutImages(full_image, img_offset);
         }
+
+        public Point getEndOffset(){
+            return end_offset;
+        }
+
+
+        public Bitmap getImage(int dir, int frame){
+            return images[dir + dirs * frame];
+        }
+
+        public void cutImages(Bitmap full_image, Point offset){
+            int frame = 0;
+            int dir = 0;
+            images = new Bitmap[dirs*frames];
+            for (int y = offset.Y; y < full_image.Height; y+=height)
+            {
+                for (int x = offset.X; x < full_image.Width; x+=width)
+                {
+                    int i = dir + frame * dirs;
+                    images[i] = cutSingleImage(full_image, new Point(x,y));
+                    dir++;
+                    if(dir == dirs){
+                        dir = 0;
+                        frame++;
+                    }
+                    if(frame == frames){
+                        //we are done with our segment
+                        end_offset = new Point(x + width, y + height);
+                        return;
+                    }
+                }
+            }
+        }
+
+        public Bitmap cutSingleImage(Bitmap full_image, Point offset){
+            Bitmap res = new Bitmap(width, height);
+            using(var graphic = Graphics.FromImage(res)){
+                graphic.DrawImage(full_image, offset.X, offset.Y, width, height);
+                return res;
+            }
+        }
+
+    
 
         public void setID(string id){
             this.id = id;

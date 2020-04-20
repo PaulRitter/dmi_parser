@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using MetadataExtractor;
 using System.IO;
+using System.Drawing;
 
 namespace DMI_Parser
 {
@@ -31,14 +32,17 @@ namespace DMI_Parser
             //get metadata
             IEnumerator metadata = getDMIMetadata(stream).GetEnumerator();
 
+            //file bitmap
+            Bitmap full_image = new Bitmap(stream);
+
             //dmi info
             float version = -1;
             int width = -1;
             int height = -1;
 
-
             //for building states
             int position = 0;
+            Point offset = new Point(0,0);
             List<DMIState> states = new List<DMIState>();
             bool readingState = false;
             string stateID = null;
@@ -80,7 +84,9 @@ namespace DMI_Parser
                             if(stateDirs == -1 ||stateFrames == -1 || stateID == null){
                                 throw new InvalidStateException("Invalid State at end of state-parsing", stateID, stateDirs, stateFrames, stateDelays);
                             }
-                            states.Add(new DMIState(position++, stateID, stateDirs, stateFrames, stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots, string.Join("\n",raw)));
+                            DMIState newState = new DMIState(width, height, position++, stateID, stateDirs, stateFrames, stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots, string.Join("\n",raw), full_image, offset);
+                            states.Add(newState);
+                            offset = newState.getEndOffset();
                             stateID = null;
                             stateDirs = -1;
                             stateFrames = -1;
