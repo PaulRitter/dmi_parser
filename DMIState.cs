@@ -10,7 +10,7 @@ namespace DMI_Parser
         public readonly int height;
         public readonly int position;
         public string id;
-        public int dirs;
+        public DirCount dirs;
         public int frames;
         private float[] delays;
         private int loop; // 0 => infinite
@@ -20,6 +20,7 @@ namespace DMI_Parser
         private string rawParserData;
         public Bitmap[,] images; //index is dir + dir*frame
         //indexing this way lets us just walk through the array when saving -> images already in the correct order
+
         private Point start_offset;
         private Point end_offset;
 
@@ -64,7 +65,7 @@ namespace DMI_Parser
         public void cutImages(Bitmap full_image, Point offset){
             int frame = 0;
             int dir = 0;
-            images = new Bitmap[dirs,frames];
+            images = new Bitmap[(int)dirs,frames];
             int x = offset.X;
             for (int y = offset.Y; y < full_image.Height; y+=height)
             {
@@ -72,7 +73,7 @@ namespace DMI_Parser
                 {
                     images[dir,frame] = cutSingleImage(full_image, new Point(x,y));
                     dir++;
-                    if(dir == dirs){
+                    if(dir == (int)dirs){
                         dir = 0;
                         frame++;
                     }
@@ -115,7 +116,7 @@ namespace DMI_Parser
         }
 
         public void setDirs(int dirs){
-            this.dirs = dirs;
+            this.dirs = (DirCount)dirs;
         }
 
         public void setFrames(int frames){

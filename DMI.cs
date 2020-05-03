@@ -116,6 +116,9 @@ namespace DMI_Parser
                             throw new StateArgumentDuplicateException("Argument duplicated", "dirs");
                         }
                         stateDirs = int.Parse(current[1]);
+                        if(stateDirs != 1 && stateDirs != 4 && stateDirs != 8){
+                            throw new StateArgumentValueInvalidException<int>("Dir count invalid", "dirs", stateDirs);
+                        }
                         raw.Add((string)metadata.Current);
                         break;
                     case "frames":
