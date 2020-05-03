@@ -60,7 +60,6 @@ namespace DMI_Parser
             //parse data
             while (metadata.MoveNext())
             {
-                Console.WriteLine(metadata.Current);
                 string[] current = ((string)metadata.Current).Trim().Split('='); //make this regex
                 switch (current[0].Trim())
                 {
@@ -86,6 +85,14 @@ namespace DMI_Parser
                         if(readingState){
                             if(stateDirs == -1 ||stateFrames == -1 || stateID == null){
                                 throw new InvalidStateException("Invalid State at end of state-parsing", stateID, stateDirs, stateFrames, stateDelays);
+                            }
+
+                            //some files dont have width and height specified and just assume ist 32x32... fuck you
+                            if(width == -1){
+                                width = 32;
+                            }
+                            if(height == -1){
+                                height = 32;
                             }
                             DMIState newState = new DMIState(width, height, position++, stateID, stateDirs, stateFrames, stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots, string.Join("\n",raw), full_image, offset);
                             states.Add(newState);
@@ -173,6 +180,14 @@ namespace DMI_Parser
                 if(stateDirs == -1 ||stateFrames == -1 || stateID == null){
                     throw new InvalidStateException("Invalid State at end of state-parsing", stateID, stateDirs, stateFrames, stateDelays);
                 }
+
+                //some files dont have width and height specified and just assume ist 32x32... fuck you
+                if(width == -1){
+                    width = 32;
+                }
+                if(height == -1){
+                    height = 32;
+                }
                 DMIState newState = new DMIState(width, height, position++, stateID, stateDirs, stateFrames, stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots, string.Join("\n",raw), full_image, offset);
                 states.Add(newState);
                 offset = newState.getEndOffset();
@@ -186,7 +201,6 @@ namespace DMI_Parser
                 stateHotspots = new List<Hotspot>();
                 raw = new List<string>();
             }
-
             
             return new DMI(version, width, height, states, full_image);
         }

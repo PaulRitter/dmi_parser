@@ -65,9 +65,10 @@ namespace DMI_Parser
             int frame = 0;
             int dir = 0;
             images = new Bitmap[dirs,frames];
+            int x = offset.X;
             for (int y = offset.Y; y < full_image.Height; y+=height)
             {
-                for (int x = offset.X; x < full_image.Width; x+=width)
+                for (; x < full_image.Width; x+=width)
                 {
                     images[dir,frame] = cutSingleImage(full_image, new Point(x,y));
                     dir++;
@@ -87,6 +88,7 @@ namespace DMI_Parser
                         return;
                     }
                 }
+                x = 0;
             }
         }
 
@@ -94,7 +96,14 @@ namespace DMI_Parser
             Rectangle source_rect = new Rectangle(offset.X, offset.Y, width, height);
             Rectangle dest_rect = new Rectangle(0, 0, width, height);
 
-            Bitmap res = new Bitmap(width, height);
+            Bitmap res;
+            try{
+                res = new Bitmap(width, height);
+            }catch(Exception e){
+                Console.WriteLine($"{width},{height}");
+                throw e;
+            }
+            
             using(var g = Graphics.FromImage(res)){
                 g.DrawImage(full_image, dest_rect, source_rect, GraphicsUnit.Pixel);
                 return res;
