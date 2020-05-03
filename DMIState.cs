@@ -110,8 +110,6 @@ namespace DMI_Parser
             }
         }
 
-    
-
         public void setID(string id){
             this.id = id;
         }
