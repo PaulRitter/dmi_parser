@@ -10,4 +10,16 @@
     <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="DMI_Parser_Test\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove="DMI_Parser_Test\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="DMI_Parser_Test\**" />
+  </ItemGroup>
+
 </Project>

@@ -7,35 +7,38 @@ using System.Drawing;
 
 namespace DMI_Parser
 {
-    public class DMI
+    public class Dmi
     {
-        public readonly float version;
-        public readonly int width;
-        public readonly int height;
-        public List<DMIState> states;
-        public Bitmap full_image;
+        public readonly float Version;
+        public readonly int Width;
+        public readonly int Height;
+        public List<DMIState> States;
+        public Bitmap Image;
 
-        private DMI(float version, int width, int height, List<DMIState> states, Bitmap full_image){
-            this.version = version;
-            this.width = width;
-            this.height = height;
-            this.states = states;
-            this.full_image = full_image;
+        private Dmi(float version, int width, int height, List<DMIState> states, Bitmap image)
+        {
+            this.Version = version;
+            this.Width = width;
+            this.Height = height;
+            this.States = states;
+            this.Image = image;
         }
 
-        public static DMI fromFile(String filepath){
+        public static Dmi FromFile(String filepath)
+        {
             FileStream stream = File.Open(filepath, FileMode.Open);
-            DMI result = fromFile(stream);
+            Dmi result = FromFile(stream);
             stream.Close();
             return result;
         }
 
-        public static DMI fromFile(FileStream stream){
+        public static Dmi FromFile(FileStream stream)
+        {
             //get metadata
             IEnumerator metadata = getDMIMetadata(stream).GetEnumerator();
 
             //file bitmap
-            Bitmap full_image = new Bitmap(stream);
+            Bitmap image = new Bitmap(stream);
 
             //dmi info
             float version = -1;
@@ -44,7 +47,7 @@ namespace DMI_Parser
 
             //for building states
             int position = 0;
-            Point offset = new Point(0,0);
+            Point offset = new Point(0, 0);
             List<DMIState> states = new List<DMIState>();
             bool readingState = false;
             string stateID = null;
@@ -60,41 +63,56 @@ namespace DMI_Parser
             //parse data
             while (metadata.MoveNext())
             {
-                string[] current = ((string)metadata.Current).Trim().Split('='); //make this regex
+                string[] current = ((string) metadata.Current).Trim().Split('='); //make this regex
                 switch (current[0].Trim())
                 {
                     case "version":
-                        if(version != -1){
+                        if (version != -1)
+                        {
                             throw new StateArgumentDuplicateException("Argument duplicated", "version");
                         }
-                        version = float.Parse(current[1].Replace('.',','));
+
+                        version = float.Parse(current[1].Replace('.', ','));
                         break;
                     case "width":
-                        if(width != -1){
+                        if (width != -1)
+                        {
                             throw new StateArgumentDuplicateException("Argument duplicated", "width");
                         }
+
                         width = int.Parse(current[1]);
                         break;
                     case "height":
-                        if(height != -1){
+                        if (height != -1)
+                        {
                             throw new StateArgumentDuplicateException("Argument duplicated", "height");
                         }
+
                         height = int.Parse(current[1]);
                         break;
                     case "state":
-                        if(readingState){
-                            if(stateDirs == -1 ||stateFrames == -1 || stateID == null){
-                                throw new InvalidStateException("Invalid State at end of state-parsing", stateID, stateDirs, stateFrames, stateDelays);
+                        if (readingState)
+                        {
+                            if (stateDirs == -1 || stateFrames == -1 || stateID == null)
+                            {
+                                throw new InvalidStateException("Invalid State at end of state-parsing", stateID,
+                                    stateDirs, stateFrames, stateDelays);
                             }
 
                             //some files dont have width and height specified and just assume ist 32x32... fuck you
-                            if(width == -1){
+                            if (width == -1)
+                            {
                                 width = 32;
                             }
-                            if(height == -1){
+
+                            if (height == -1)
+                            {
                                 height = 32;
                             }
-                            DMIState newState = new DMIState(width, height, position++, stateID, stateDirs, stateFrames, stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots, string.Join("\n",raw), full_image, offset);
+
+                            DMIState newState = new DMIState(width, height, position++, stateID, stateDirs, stateFrames,
+                                stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots,
+                                string.Join("\n", raw), image, offset);
                             states.Add(newState);
                             offset = newState.getEndOffset();
                             stateID = null;
@@ -107,71 +125,103 @@ namespace DMI_Parser
                             stateHotspots = new List<Hotspot>();
                             raw = new List<string>();
                         }
+
                         stateID = current[1].Trim().Trim('"');
                         readingState = true;
-                        raw.Add((string)metadata.Current);
+                        raw.Add((string) metadata.Current);
                         break;
                     case "dirs":
-                        if(stateDirs != -1){
+                        if (stateDirs != -1)
+                        {
                             throw new StateArgumentDuplicateException("Argument duplicated", "dirs");
                         }
-                        stateDirs = int.Parse(current[1]);
-                        if(stateDirs != 1 && stateDirs != 4 && stateDirs != 8){
-                            throw new StateArgumentValueInvalidException<int>("Dir count invalid", "dirs", stateDirs);
+
+                        int newDir = int.Parse(current[1]);
+                        switch (newDir)
+                        {
+                            case 1:
+                                stateDirs = (int) DirCount.SINGLE;
+                                break;
+                            case 4:
+                                stateDirs = (int) DirCount.CARDINAL;
+                                break;
+                            case 8:
+                                stateDirs = (int) DirCount.ALL;
+                                break;
+                            default:
+                                throw new StateArgumentValueInvalidException<int>("Dir count invalid", "dirs",
+                                    stateDirs);
                         }
-                        raw.Add((string)metadata.Current);
+
+                        raw.Add((string) metadata.Current);
                         break;
                     case "frames":
-                        if(stateFrames != -1){
+                        if (stateFrames != -1)
+                        {
                             throw new StateArgumentDuplicateException("Argument duplicated", "frames");
                         }
+
                         stateFrames = int.Parse(current[1]);
-                        raw.Add((string)metadata.Current);
+                        raw.Add((string) metadata.Current);
                         break;
                     case "delay":
-                        if(stateDelays != null){
+                        if (stateDelays != null)
+                        {
                             throw new StateArgumentDuplicateException("Argument duplicated", "delay");
                         }
+
                         string[] raw_delays = current[1].Split(',');
                         stateDelays = new float[raw_delays.Length];
                         int i = 0;
                         foreach (string delay in raw_delays)
                         {
-                            stateDelays[i] = float.Parse(delay.Replace('.',','));
+                            stateDelays[i] = float.Parse(delay.Replace('.', ','));
                             i++;
                         }
-                        raw.Add((string)metadata.Current);
+
+                        raw.Add((string) metadata.Current);
                         break;
                     case "loop":
-                        if(stateLoop != 0){
+                        if (stateLoop != 0)
+                        {
                             throw new StateArgumentDuplicateException("Argument duplicated", "loop");
                         }
+
                         stateLoop = int.Parse(current[1]);
-                        raw.Add((string)metadata.Current);
+                        raw.Add((string) metadata.Current);
                         break;
                     case "rewind":
-                        if(stateRewind){
+                        if (stateRewind)
+                        {
                             throw new StateArgumentDuplicateException("Argument duplicated", "rewind");
                         }
-                        if(current[1].Trim() == "1"){
+
+                        if (current[1].Trim() == "1")
+                        {
                             stateRewind = true;
                         }
-                        raw.Add((string)metadata.Current);
+
+                        raw.Add((string) metadata.Current);
                         break;
                     case "movement":
-                        if(stateMovement){
+                        if (stateMovement)
+                        {
                             throw new StateArgumentDuplicateException("Argument duplicated", "movement");
                         }
-                        if(current[1].Trim() == "1"){
+
+                        if (current[1].Trim() == "1")
+                        {
                             stateMovement = true;
                         }
-                        raw.Add((string)metadata.Current);
+
+                        raw.Add((string) metadata.Current);
                         break;
                     case "hotspot":
                         //can have multiple
                         string[] values = current[1].Split(',');
-                        stateHotspots.Add(new Hotspot(int.Parse(values[0]), int.Parse(values[1]), int.Parse(values[2])));
-                        raw.Add((string)metadata.Current);
+                        stateHotspots.Add(new Hotspot(int.Parse(values[0]), int.Parse(values[1]),
+                            int.Parse(values[2])));
+                        raw.Add((string) metadata.Current);
                         break;
                     default:
                         throw new UnknownKeywordException("Unknown Keyword received", stateID, current[0], current[1]);
@@ -179,19 +229,28 @@ namespace DMI_Parser
             }
 
             //evil copy pasta
-            if(readingState){
-                if(stateDirs == -1 ||stateFrames == -1 || stateID == null){
-                    throw new InvalidStateException("Invalid State at end of state-parsing", stateID, stateDirs, stateFrames, stateDelays);
+            if (readingState)
+            {
+                if (stateDirs == -1 || stateFrames == -1 || stateID == null)
+                {
+                    throw new InvalidStateException("Invalid State at end of state-parsing", stateID, stateDirs,
+                        stateFrames, stateDelays);
                 }
 
-                //some files dont have width and height specified and just assume ist 32x32... fuck you
-                if(width == -1){
+                //some files dont have width and height specified and just assume its 32x32... fuck you
+                if (width == -1)
+                {
                     width = 32;
                 }
-                if(height == -1){
+
+                if (height == -1)
+                {
                     height = 32;
                 }
-                DMIState newState = new DMIState(width, height, position++, stateID, stateDirs, stateFrames, stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots, string.Join("\n",raw), full_image, offset);
+
+                DMIState newState = new DMIState(width, height, position++, stateID, stateDirs, stateFrames,
+                    stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots, string.Join("\n", raw),
+                    image, offset);
                 states.Add(newState);
                 offset = newState.getEndOffset();
                 stateID = null;
@@ -204,41 +263,50 @@ namespace DMI_Parser
                 stateHotspots = new List<Hotspot>();
                 raw = new List<string>();
             }
-            
-            return new DMI(version, width, height, states, full_image);
+
+            return new Dmi(version, width, height, states, image);
         }
 
-        private static String[] getDMIMetadata(FileStream stream){
+        private static String[] getDMIMetadata(FileStream stream)
+        {
             IReadOnlyList<MetadataExtractor.Directory> directories;
-            try{
+            try
+            {
                 directories = ImageMetadataReader.ReadMetadata(stream);
-            }catch(ImageProcessingException e){
+            }
+            catch (ImageProcessingException e)
+            {
                 throw new InvalidFileException("File could not be read as a .dmi", e);
             }
 
             foreach (var directory in directories)
             {
-                foreach (var tag in directory.Tags){
-                    if(tag.Name != "Textual Data")
+                foreach (var tag in directory.Tags)
+                {
+                    if (tag.Name != "Textual Data")
                         continue;
                     string[] raw_metadata = tag.Description.Split(
-                        new[] { "\r\n", "\r", "\n" },
+                        new[] {"\r\n", "\r", "\n"},
                         StringSplitOptions.None
                     );
                     int start = -1;
                     int end = -1;
                     for (int i = 0; i < raw_metadata.Length; i++)
                     {
-                        if(raw_metadata[i].Replace(" ",string.Empty).EndsWith("#BEGINDMI")){
-                            start = i+1;
-                        }else if(raw_metadata[i].Replace(" ",string.Empty).EndsWith("#ENDDMI")){
+                        if (raw_metadata[i].Replace(" ", string.Empty).EndsWith("#BEGINDMI"))
+                        {
+                            start = i + 1;
+                        }
+                        else if (raw_metadata[i].Replace(" ", string.Empty).EndsWith("#ENDDMI"))
+                        {
                             end = i;
                         }
                     }
-                    
-                    if(end != -1 && start != -1){
-                        string[] dmi_metadata = new string[end-start];
-                        Array.Copy(raw_metadata, start, dmi_metadata, 0, end-start);                        
+
+                    if (end != -1 && start != -1)
+                    {
+                        string[] dmi_metadata = new string[end - start];
+                        Array.Copy(raw_metadata, start, dmi_metadata, 0, end - start);
                         return dmi_metadata;
                     }
                 }

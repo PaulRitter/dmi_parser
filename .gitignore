@@ -2,3 +2,6 @@ obj/
 bin/
 .vs/
 *.sln
+DMI_Parser_Test/
+.idea/
+/DMI_Parser.sln.DotSettings.user
