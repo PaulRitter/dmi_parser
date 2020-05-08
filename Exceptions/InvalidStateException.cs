@@ -2,7 +2,7 @@ using System;
 
 namespace DMI_Parser
 {
-    public class InvalidStateException : Exception
+    public class InvalidStateException : ParsingException
     {
         public readonly string stateID;
         public readonly int dirs;

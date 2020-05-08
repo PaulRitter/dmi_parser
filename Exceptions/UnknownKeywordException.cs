@@ -3,7 +3,7 @@ using System;
 namespace DMI_Parser
 {
     [System.Serializable]
-    public class UnknownKeywordException : Exception
+    public class UnknownKeywordException : ParsingException
     {
         public readonly string keyword;
         public readonly string value;

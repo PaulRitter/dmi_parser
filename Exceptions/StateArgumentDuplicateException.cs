@@ -2,22 +2,22 @@ using System;
 
 namespace DMI_Parser
 {
-    public class StateArgumentDuplicateException : Exception
+    public class StateArgumentDuplicateException : ParsingException
     {
-        public readonly string argumentID;
+        public readonly string ArgumentId;
 
-        public StateArgumentDuplicateException(string message, string argumentID)
+        public StateArgumentDuplicateException(string message, string argumentId)
             : base(message) {
-                this.argumentID = argumentID;
+                this.ArgumentId = argumentId;
             }
 
-        public StateArgumentDuplicateException(string message, Exception inner, string argumentID)
+        public StateArgumentDuplicateException(string message, Exception inner, string argumentId)
             : base(message, inner) {
-                this.argumentID = argumentID;
+                this.ArgumentId = argumentId;
             }
         
         public override string ToString(){
-            return base.ToString() + "\nArgumentID: "+argumentID;
+            return base.ToString() + "\nArgumentID: "+ArgumentId;
         }
 
     }

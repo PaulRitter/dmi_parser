@@ -1,7 +1,7 @@
 using System;
 namespace DMI_Parser
 {
-    public class StateArgumentValueInvalidException<T> : Exception
+    public class StateArgumentValueInvalidException<T> : ParsingException
     {
         public readonly string argumentName;
         public readonly T value;
