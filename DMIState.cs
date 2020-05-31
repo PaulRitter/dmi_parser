@@ -9,12 +9,12 @@ namespace DMI_Parser
         public readonly int Width;
         public readonly int Height;
         public readonly int Position;
-        public string Id;
-        public DirCount Dirs;
-        public int Frames;
+        public string Id { get; private set; }
+        public DirCount Dirs { get; private set; }
+        public int Frames { get; private set; }
         private float[] _delays;
-        private int _loop; // 0 => infinite
-        private bool _rewind;
+        public int Loop { get; private set; } // 0 => infinite
+        public bool Rewind { get; private set; }
         private bool _movement;
         private List<Hotspot> _hotspots;
         private string _rawParserData;
@@ -23,19 +23,27 @@ namespace DMI_Parser
 
         private Point _startOffset;
         private Point _endOffset;
+        
+        //Events
+        public event EventHandler stateChanged;
+        public event EventHandler idChanged;
+        public event EventHandler dirCountChanged;
+        public event EventHandler frameCountChanged;
+        public event EventHandler loopCountChanged;
+        public event EventHandler rewindChanged;
 
         public DMIState(int width, int height, int position, string id, int dirs, int frames, float[] delays, int loop, bool rewind, bool movement, List<Hotspot> hotspots, string rawParserData, Bitmap full_image, Point img_offset){
             this.Width = width;
             this.Height = height;
             this.Position = position;
             this._rawParserData = rawParserData;
-            this._loop = loop;
-            this._rewind = rewind;
+            this.Loop = loop;
+            this.Rewind = rewind;
             this._movement = movement;
             this._hotspots = hotspots; //TODO validate
             this._startOffset = img_offset;
             setID(id);
-            setDirs(dirs);
+            setDirs((DirCount)dirs);
 
             setFrames(frames);
             if(delays != null){
@@ -51,6 +59,18 @@ namespace DMI_Parser
             }
 
             cutImages(full_image, img_offset);
+
+            //subscribing our generic event to all specific ones
+            idChanged += OnSomethingChanged;
+            dirCountChanged += OnSomethingChanged;
+            frameCountChanged += OnSomethingChanged;
+            loopCountChanged += OnSomethingChanged;
+            rewindChanged += OnSomethingChanged;
+        }
+
+        private void OnSomethingChanged(object s, EventArgs e)
+        {
+            stateChanged?.Invoke(this, null);
         }
 
         public Point getEndOffset(){
@@ -60,6 +80,13 @@ namespace DMI_Parser
 
         public Bitmap getImage(int dir, int frame){
             return Images[dir,frame];
+        }
+
+        public float getDelay(int frame)
+        {
+            if(frame < 0 || frame > _delays.Length-1) throw new ArgumentException($"Delay for Frame {frame} does not exist");
+            
+            return _delays[frame];
         }
 
         public void cutImages(Bitmap full_image, Point offset){
@@ -111,15 +138,26 @@ namespace DMI_Parser
             }
         }
 
-        public void setID(string id){
+        public void setID(string id)
+        {
+            if (id == this.Id) return;
+
             this.Id = id;
+            idChanged?.Invoke(this, null);
         }
 
-        public void setDirs(int dirs){
-            this.Dirs = (DirCount)dirs;
+        public void setDirs(DirCount dirs)
+        {
+            if (dirs == this.Dirs) return;
+            
+            this.Dirs = dirs;
+            dirCountChanged?.Invoke(this, null);
         }
 
-        public void setFrames(int frames){
+        public void setFrames(int frames)
+        {
+            if (frames == this.Frames) return;
+            
             if(frames < 1){
                 throw new FrameCountInvalidException("Frame count invalid, only Integers > 1 are allowed", this, frames);
             }
@@ -130,6 +168,7 @@ namespace DMI_Parser
             }else{ //we wont have delays with only one frame
                 _delays = null;
             }
+            frameCountChanged?.Invoke(this, null);
         }
 
         public void setDelays(float[] delays){
@@ -147,14 +186,33 @@ namespace DMI_Parser
             _delays[index] = delay; //will throw IndexOutOfRangeException if index invalid, indended
         }
 
+        public void setLoop(int loop)
+        {
+            if (loop == Loop)  return;
+            
+            if (loop < 0)
+                throw new ArgumentException("Loopcount cannot be < 0");
+
+            Loop = loop;
+            loopCountChanged?.Invoke(this, null);
+        }
+
+        public void setRewind(bool rewind)
+        {
+            if(rewind == Rewind) return;
+
+            Rewind = rewind;
+            rewindChanged?.Invoke(this, null);
+        }
+
         public override string ToString(){
             string res = "["+Id+"]\nDirs: "+Dirs+"\nFrames: "+Frames+"\n"; 
             
             res += "Loop: ";
-            if(_loop == 0){
+            if(Loop == 0){
                 res += "indefinitely\n";
             }else{
-                res += _loop+"\n";
+                res += Loop+"\n";
             }
             
             res += "Delays: ";
@@ -164,7 +222,7 @@ namespace DMI_Parser
                 res += "none\n";
             }
 
-            res += "Rewind: "+_rewind.ToString()+"\n";
+            res += "Rewind: "+Rewind.ToString()+"\n";
             
             res += "Movement: "+_movement.ToString()+"\n";
 
