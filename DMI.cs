@@ -24,6 +24,8 @@ namespace DMI_Parser
             this.Image = image;
         }
 
+        //todo instance-method for saving
+        
         public static Dmi FromFile(String filepath)
         {
             FileStream stream = File.Open(filepath, FileMode.Open);
@@ -31,7 +33,7 @@ namespace DMI_Parser
             stream.Close();
             return result;
         }
-
+        
         public static Dmi FromFile(FileStream stream)
         {
             //get metadata
@@ -110,6 +112,7 @@ namespace DMI_Parser
                                 height = 32;
                             }
 
+                            //todo make this not shit
                             DMIState newState = new DMIState(width, height, position++, stateID, stateDirs, stateFrames,
                                 stateDelays, stateLoop, stateRewind, stateMovement, stateHotspots,
                                 string.Join("\n", raw), image, offset);

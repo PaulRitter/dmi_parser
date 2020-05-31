@@ -150,7 +150,7 @@ namespace DMI_Parser
         {
             if (dirs == this.Dirs) return;
             
-            this.Dirs = dirs;
+            this.Dirs = dirs; //todo actually implement
             dirCountChanged?.Invoke(this, null);
         }
 
@@ -162,7 +162,7 @@ namespace DMI_Parser
                 throw new FrameCountInvalidException("Frame count invalid, only Integers > 1 are allowed", this, frames);
             }
 
-            this.Frames = frames;
+            this.Frames = frames; //todo actually implement, maybe have images on first init already be pre-cut?
             if(frames > 1){
                 _delays = new float[frames];
             }else{ //we wont have delays with only one frame
