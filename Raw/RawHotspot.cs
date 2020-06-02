@@ -1,6 +1,6 @@
 ﻿namespace DMI_Parser.Raw
 {
-    public struct RawHotspot : IRawValue
+    public struct RawHotspot
     {
         public readonly int X;
         public readonly int Y;
@@ -20,10 +20,9 @@
             return true;
         }
 
-        public string ToRawString()
+        public override string ToString()
         {
-            //TODO
-            throw new System.NotImplementedException();
+            return $"{Dmi.DMI_TAB}hotspot = {X},{Y},{Index}";
         }
     }
 }

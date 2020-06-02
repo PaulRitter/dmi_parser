@@ -3,7 +3,7 @@
 #nullable enable
 namespace DMI_Parser.Raw
 {
-    public class RawDmiState : IRawValue
+    public class RawDmiState
     {
         public string Id;
         public DirCount? Dirs;
@@ -29,12 +29,6 @@ namespace DMI_Parser.Raw
         {
             //TODO tostring
             return "TODO RawDmiState.ToString()";
-        }
-
-        public string ToRawString()
-        {
-            //TODO
-            throw new System.NotImplementedException();
         }
     }
 }

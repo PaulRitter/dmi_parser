@@ -8,7 +8,6 @@ namespace DMI_Parser
     public class DMIState
     {
         public readonly Dmi Parent;
-
         public int Width => Parent.Width;
         public int Height => Parent.Height;
 
@@ -170,34 +169,33 @@ namespace DMI_Parser
             rewindChanged?.Invoke(this, null);
         }
 
-        public override string ToString(){
-            string res = "["+Id+"]\nDirs: "+Dirs+"\nFrames: "+Frames+"\n"; 
+        public override string ToString()
+        {
+            string res = $"state = \"{Id}\"";
+            res += $"{Dmi.DMI_TAB}dirs = {Dirs}";
+            res += $"{Dmi.DMI_TAB}frames = {Frames}";
             
-            res += "Loop: ";
-            if(Loop == 0){
-                res += "indefinitely\n";
-            }else{
-                res += Loop+"\n";
-            }
-            
-            res += "Delays: ";
-            if(_delays != null){
-                res += string.Join(" - ", _delays)+"\n";
-            }else{
-                res += "none\n";
-            }
-
-            res += "Rewind: "+Rewind.ToString()+"\n";
-            
-            res += "Movement: "+Movement.ToString()+"\n";
-
-            res += "Hotspots:\n";
-            foreach (var item in _hotspots)
+            string[] delayStrings = new string[_delays.Length];
+            for (var i = 0; i < _delays.Length; i++)
             {
-                res += " - "+item+"\n";
+                delayStrings[i] = _delays[i].ToString().Replace(',', '.');
             }
+            res += $"{Dmi.DMI_TAB}delay = {String.Join(",", delayStrings)}";
 
-            res += $"Images: {Images.Length}\n";
+            if (Loop != 0)
+                res += $"{Dmi.DMI_TAB}loop = {Loop}";
+
+            if (Rewind)
+                res += $"{Dmi.DMI_TAB}rewind = 1";
+
+            if (Movement)
+                res += $"{Dmi.DMI_TAB}movement = 1";
+
+            foreach (var hspot in _hotspots)
+            {
+                res += hspot.ToSaveableString(Height, (int)Dirs);
+            }
+            
             return res;
         }
     }

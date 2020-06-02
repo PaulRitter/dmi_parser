@@ -12,6 +12,8 @@ namespace DMI_Parser
 {
     public class Dmi
     {
+        public const string DMI_TAB = "        ";
+        
         public readonly float Version;
         public readonly int Width;
         public readonly int Height;
@@ -24,8 +26,45 @@ namespace DMI_Parser
             this.Height = height;
         }
 
-        //todo instance-method for saving
+        //compiles a Bitmap of the entire DMI
+        public Bitmap getFullBitmap()
+        {
+            int imgCount = getTotalImageCount();
+
+            int imgCountWidth = (int)Math.Ceiling(Math.Sqrt(imgCount));
+            int imgCountHeight = (int) Math.Ceiling((double)imgCount / (double)imgCountWidth);
+
+            int bitmapWidth = imgCountWidth * Width;
+            int bitmapHeight = imgCountHeight * Height;
+            
+            Bitmap res = new Bitmap(bitmapWidth, bitmapHeight);
+        }
+
+        public int getTotalImageCount()
+        {
+            int res = 0;
+            foreach (var state in States)
+            {
+                res += state.Images.Length;
+            }
+
+            return res;
+        }
         
+        //todo instance-method for saving
+        public override string ToString()
+        {
+            string res = $"version = {Version}";
+            res += $"\n{DMI_TAB}width = {Width}";
+            res += $"\n{DMI_TAB}height = {Height}";
+            foreach (var state in States)
+            {
+                res += $"\n{state}";
+            }
+
+            return res;
+        }
+
         public static Dmi FromFile(String filepath)
         {
             FileStream stream = File.Open(filepath, FileMode.Open);
@@ -59,6 +98,7 @@ namespace DMI_Parser
             while (metadata.MoveNext())
             {
                 string[] current = ((string) metadata.Current).Trim().Split('='); //make this regex
+                Console.WriteLine(metadata.Current);
                 switch (current[0].Trim())
                 {
                     case "version":

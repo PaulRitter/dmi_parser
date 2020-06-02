@@ -34,6 +34,12 @@ namespace DMI_Parser
             return new RawHotspot(savedX, savedY, dirs*Frame + Dir);
         }
 
+        public string ToSaveableString(int height, int dirs)
+        {
+            RawHotspot rawHotspot = ToRawHotspot(height, dirs);
+            return rawHotspot.ToString();
+        }
+        
         public override string ToString() => $"Hotspot:(Pos({X},{Y}),Img:({Dir},{Frame}))";
         
     }
