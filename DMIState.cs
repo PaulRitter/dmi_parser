@@ -1,28 +1,26 @@
 using System;
 using System.Drawing;
 using System.Collections.Generic;
+using DMI_Parser.Raw;
 
 namespace DMI_Parser
 {
     public class DMIState
     {
-        public readonly int Width;
-        public readonly int Height;
-        public readonly int Position;
+        public readonly Dmi Parent;
+
+        public int Width => Parent.Width;
+        public int Height => Parent.Height;
+
         public string Id { get; private set; }
         public DirCount Dirs { get; private set; }
         public int Frames { get; private set; }
         private float[] _delays;
         public int Loop { get; private set; } // 0 => infinite
         public bool Rewind { get; private set; }
-        private bool _movement;
+        public bool Movement { get; private set; }
         private List<Hotspot> _hotspots;
-        private string _rawParserData;
         public Bitmap[,] Images; //index is dir + dir*frame
-        //indexing this way lets us just walk through the array when saving -> images already in the correct order
-
-        private Point _startOffset;
-        private Point _endOffset;
         
         //Events
         public event EventHandler stateChanged;
@@ -32,22 +30,42 @@ namespace DMI_Parser
         public event EventHandler loopCountChanged;
         public event EventHandler rewindChanged;
 
-        public DMIState(int width, int height, int position, string id, int dirs, int frames, float[] delays, int loop, bool rewind, bool movement, List<Hotspot> hotspots, string rawParserData, Bitmap full_image, Point img_offset){
-            this.Width = width;
-            this.Height = height;
-            this.Position = position;
-            this._rawParserData = rawParserData;
-            this.Loop = loop;
-            this.Rewind = rewind;
-            this._movement = movement;
-            this._hotspots = hotspots; //TODO validate
-            this._startOffset = img_offset;
-            setID(id);
-            setDirs((DirCount)dirs);
+        public DMIState(Dmi parent, Bitmap[,] images, RawDmiState rawDmiState)
+        {
+            //can set all these without validation
+            Parent = parent;
+            Loop = rawDmiState.Loop;
+            Rewind = rawDmiState.Rewind;
+            Movement = rawDmiState.Movement;
+            Id = rawDmiState.Id;
+
+            //validating and adding hotspots
+            _hotspots = new List<Hotspot>();
+            List<int> alreadyRegisteredIndexes = new List<int>();
+            foreach (var hspot in rawDmiState.Hotspots)
+            {
+                if (hspot.isInBounds(parent.Width, parent.Height) && !alreadyRegisteredIndexes.Contains(hspot.Index))
+                {
+                    _hotspots.Add(Hotspot.fromRawHotspot(hspot, rawDmiState.Dirs.Value, rawDmiState.Frames.Value));
+                    alreadyRegisteredIndexes.Add(hspot.Index);
+                }
+                else
+                {
+                    //todo [logging] warning
+                }
+            }
+            
+            // todo validate dir and framecount with delays and picturearray
+            this.Frames = rawDmiState.Frames.Value;
+            this.Dirs = rawDmiState.Dirs.Value;
+            this.Images = images;
+            /*setDirs((DirCount)dirs);
 
             setFrames(frames);
-            if(delays != null){
-                if(delays.Length > this._delays.Length){
+            if (delays != null)
+            {
+                if (delays.Length > this._delays.Length)
+                {
                     float[] old_delays = delays;
                     delays = new float[this._delays.Length];
                     for (int i = 0; i < delays.Length; i++)
@@ -55,10 +73,11 @@ namespace DMI_Parser
                         delays[i] = old_delays[i];
                     }
                 }
+
                 setDelays(delays);
             }
 
-            cutImages(full_image, img_offset);
+            cutImages(full_image, img_offset);*/
 
             //subscribing our generic event to all specific ones
             idChanged += OnSomethingChanged;
@@ -73,11 +92,6 @@ namespace DMI_Parser
             stateChanged?.Invoke(this, null);
         }
 
-        public Point getEndOffset(){
-            return _endOffset;
-        }
-
-
         public Bitmap getImage(int dir, int frame){
             return Images[dir,frame];
         }
@@ -87,55 +101,6 @@ namespace DMI_Parser
             if(frame < 0 || frame > _delays.Length-1) throw new ArgumentException($"Delay for Frame {frame} does not exist");
             
             return _delays[frame];
-        }
-
-        public void cutImages(Bitmap full_image, Point offset){
-            int frame = 0;
-            int dir = 0;
-            Images = new Bitmap[(int)Dirs,Frames];
-            int x = offset.X;
-            for (int y = offset.Y; y < full_image.Height; y+=Height)
-            {
-                for (; x < full_image.Width; x+=Width)
-                {
-                    Images[dir,frame] = cutSingleImage(full_image, new Point(x,y));
-                    dir++;
-                    if(dir == (int)Dirs){
-                        dir = 0;
-                        frame++;
-                    }
-                    if(frame == Frames){
-                        //we are done with our segment
-                        int endwidth = x + Width;
-                        int endheight = y;
-                        if(endwidth >= full_image.Width){
-                            endwidth = 0;
-                            endheight += Height;
-                        }
-                        _endOffset = new Point(endwidth, endheight);
-                        return;
-                    }
-                }
-                x = 0;
-            }
-        }
-
-        public Bitmap cutSingleImage(Bitmap full_image, Point offset){
-            Rectangle source_rect = new Rectangle(offset.X, offset.Y, Width, Height);
-            Rectangle dest_rect = new Rectangle(0, 0, Width, Height);
-
-            Bitmap res;
-            try{
-                res = new Bitmap(Width, Height);
-            }catch(Exception e){
-                Console.WriteLine($"{Width},{Height}");
-                throw e;
-            }
-            
-            using(var g = Graphics.FromImage(res)){
-                g.DrawImage(full_image, dest_rect, source_rect, GraphicsUnit.Pixel);
-                return res;
-            }
         }
 
         public void setID(string id)
@@ -183,7 +148,7 @@ namespace DMI_Parser
         }
 
         public void setDelay(int index, float delay){
-            _delays[index] = delay; //will throw IndexOutOfRangeException if index invalid, indended
+            _delays[index] = delay; //will throw IndexOutOfRangeException if index invalid, intended
         }
 
         public void setLoop(int loop)
@@ -224,7 +189,7 @@ namespace DMI_Parser
 
             res += "Rewind: "+Rewind.ToString()+"\n";
             
-            res += "Movement: "+_movement.ToString()+"\n";
+            res += "Movement: "+Movement.ToString()+"\n";
 
             res += "Hotspots:\n";
             foreach (var item in _hotspots)
@@ -233,8 +198,6 @@ namespace DMI_Parser
             }
 
             res += $"Images: {Images.Length}\n";
-
-            res += "Raw Data:\n"+_rawParserData;
             return res;
         }
     }

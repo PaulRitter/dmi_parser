@@ -1,28 +1,27 @@
 using System;
+using DMI_Parser.Raw;
 
 namespace DMI_Parser
 {
     public class InvalidStateException : ParsingException
     {
-        public readonly string stateID;
-        public readonly int dirs;
-        public readonly int frames;
-        public readonly float[] delay;
+        public readonly RawDmiState rawState;
 
-        public InvalidStateException(string message, string stateID, int dirs, int frames, float[] delay)
-            : base(message) {
-                this.stateID = stateID;
-                this.dirs = dirs;
-                this.frames = frames;
-                this.delay = delay;
-            }
+        public InvalidStateException(string message, RawDmiState rawState)
+            : base(message)
+        {
+            this.rawState = rawState;
+        }
 
-        public InvalidStateException(string message, Exception inner, string stateID, int dirs, int frames, float[] delay)
-            : base(message, inner) { 
-                this.stateID = stateID;
-                this.dirs = dirs;
-                this.frames = frames;
-                this.delay = delay;
-            }
+        public InvalidStateException(string message, Exception inner, RawDmiState rawState)
+            : base(message, inner)
+        {
+            this.rawState = rawState;
+        }
+
+        public override string ToString()
+        {
+            return base.ToString() + "\r\n"+rawState.ToString();
+        }
     }
 }

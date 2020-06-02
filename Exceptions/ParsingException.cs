@@ -2,7 +2,7 @@
 
 namespace DMI_Parser
 {
-    public abstract class ParsingException : Exception
+    public class ParsingException : Exception
     {
         public ParsingException(string message) : base(message) { }
 
