@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using MetadataExtractor;
 using System.IO;
 using System.Drawing;
-using System.Runtime.CompilerServices;
+using System.Drawing.Imaging;
+using System.Windows.Media.Imaging;
 using DMI_Parser.Parsing;
 using DMI_Parser.Raw;
 
@@ -13,7 +14,9 @@ namespace DMI_Parser
     public class Dmi
     {
         public const string DMI_TAB = "        ";
-        
+
+        //todo
+        public string Name;
         public readonly float Version;
         public readonly int Width;
         public readonly int Height;
@@ -25,9 +28,30 @@ namespace DMI_Parser
             this.Width = width;
             this.Height = height;
         }
+        
+        //todo instance-method for saving
+        public bool Save()
+        {
+            string filepath = $"{Name}.dmi";
+
+            string metadata = ToString();
+            Bitmap image = GetFullBitmap();
+            
+            image.Save(filepath, ImageFormat.Png);
+            
+            Stream pngStream = new System.IO.FileStream(filepath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+            PngBitmapDecoder pngDecoder = new PngBitmapDecoder(pngStream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.Default);
+            BitmapFrame pngFrame = pngDecoder.Frames[0];
+            InPlaceBitmapMetadataWriter pngInplace = pngFrame.CreateInPlaceBitmapMetadataWriter();
+            if (pngInplace.TrySave())
+            { pngInplace.SetQuery("/Text/Description", "Have a nice day."); }
+            pngStream.Close();
+
+            return true;
+        }
 
         //compiles a Bitmap of the entire DMI
-        public Bitmap getFullBitmap()
+        public Bitmap GetFullBitmap()
         {
             int imgCount = getTotalImageCount();
 
@@ -38,6 +62,38 @@ namespace DMI_Parser
             int bitmapHeight = imgCountHeight * Height;
             
             Bitmap res = new Bitmap(bitmapWidth, bitmapHeight);
+            Point offset = Point.Empty;
+
+            Console.WriteLine($"{bitmapWidth},{bitmapHeight}");
+            foreach (var state in States)
+            {
+                for (int dir = 0; dir < (int)state.Dirs; dir++)
+                {
+                    for (int frame = 0; frame < state.Frames; frame++)
+                    {
+                        Bitmap newImage = state.getImage(dir, frame);
+
+                        Console.WriteLine($"{offset}");
+                        
+                        for (int x = 0; x < newImage.Width; x++)
+                        {
+                            for (int y = 0; y < newImage.Height; y++)
+                            {
+                                //Console.WriteLine($"{x},{y}");
+                                res.SetPixel(offset.X + x, offset.Y + y, newImage.GetPixel(x,y));
+                            }
+                        }
+                        
+                        offset = new Point(offset.X+Width, offset.Y+0);
+                        if (offset.X >= bitmapWidth)
+                        {
+                            offset = new Point(0, offset.Y+Height);
+                        }
+                    }
+                }
+            }
+
+            return res;
         }
 
         public int getTotalImageCount()
@@ -51,10 +107,10 @@ namespace DMI_Parser
             return res;
         }
         
-        //todo instance-method for saving
         public override string ToString()
         {
-            string res = $"version = {Version}";
+            string res = "#BEGIN DMI";
+            res += $"version = {Version}";
             res += $"\n{DMI_TAB}width = {Width}";
             res += $"\n{DMI_TAB}height = {Height}";
             foreach (var state in States)
@@ -62,6 +118,7 @@ namespace DMI_Parser
                 res += $"\n{state}";
             }
 
+            res += "#END DMI";
             return res;
         }
 
@@ -98,7 +155,6 @@ namespace DMI_Parser
             while (metadata.MoveNext())
             {
                 string[] current = ((string) metadata.Current).Trim().Split('='); //make this regex
-                Console.WriteLine(metadata.Current);
                 switch (current[0].Trim())
                 {
                     case "version":
@@ -278,6 +334,7 @@ namespace DMI_Parser
             {
                 foreach (var tag in directory.Tags)
                 {
+                    Console.WriteLine(tag.Name);
                     if (tag.Name != "Textual Data")
                         continue;
                     string[] raw_metadata = tag.Description.Split(

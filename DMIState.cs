@@ -174,14 +174,17 @@ namespace DMI_Parser
             string res = $"state = \"{Id}\"";
             res += $"{Dmi.DMI_TAB}dirs = {Dirs}";
             res += $"{Dmi.DMI_TAB}frames = {Frames}";
-            
-            string[] delayStrings = new string[_delays.Length];
-            for (var i = 0; i < _delays.Length; i++)
-            {
-                delayStrings[i] = _delays[i].ToString().Replace(',', '.');
-            }
-            res += $"{Dmi.DMI_TAB}delay = {String.Join(",", delayStrings)}";
 
+            if (_delays != null)
+            {
+                string[] delayStrings = new string[_delays.Length];
+                for (var i = 0; i < _delays.Length; i++)
+                {
+                    delayStrings[i] = _delays[i].ToString().Replace(',', '.');
+                }
+                res += $"{Dmi.DMI_TAB}delay = {String.Join(",", delayStrings)}";
+            }
+            
             if (Loop != 0)
                 res += $"{Dmi.DMI_TAB}loop = {Loop}";
 
