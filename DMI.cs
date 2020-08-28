@@ -5,7 +5,7 @@ using MetadataExtractor;
 using System.IO;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Windows.Media.Imaging;
+//using System.Windows.Media.Imaging;
 using DMI_Parser.Parsing;
 using DMI_Parser.Raw;
 
@@ -15,7 +15,6 @@ namespace DMI_Parser
     {
         public const string DMI_TAB = "        ";
 
-        //todo
         public string Name;
         public readonly float Version;
         public readonly int Width;
@@ -32,7 +31,7 @@ namespace DMI_Parser
         //todo instance-method for saving
         public bool Save()
         {
-            string filepath = $"{Name}.dmi";
+            /*string filepath = $"{Name}.dmi";
 
             string metadata = ToString();
             Bitmap image = GetFullBitmap();
@@ -45,7 +44,7 @@ namespace DMI_Parser
             InPlaceBitmapMetadataWriter pngInplace = pngFrame.CreateInPlaceBitmapMetadataWriter();
             if (pngInplace.TrySave())
             { pngInplace.SetQuery("/Text/Description", "Have a nice day."); }
-            pngStream.Close();
+            pngStream.Close();*/
 
             return true;
         }
@@ -94,6 +93,11 @@ namespace DMI_Parser
             }
 
             return res;
+        }
+
+        public Bitmap CreateEmptyImage()
+        {
+            return new Bitmap(Width, Height);
         }
 
         public int getTotalImageCount()
@@ -334,7 +338,6 @@ namespace DMI_Parser
             {
                 foreach (var tag in directory.Tags)
                 {
-                    Console.WriteLine(tag.Name);
                     if (tag.Name != "Textual Data")
                         continue;
                     string[] raw_metadata = tag.Description.Split(

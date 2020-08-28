@@ -114,7 +114,8 @@ namespace DMI_Parser
         {
             if (dirs == this.Dirs) return;
             
-            this.Dirs = dirs; //todo actually implement
+            this.Dirs = dirs;
+            resizeImageArray(Dirs, Frames);
             dirCountChanged?.Invoke(this, null);
         }
 
@@ -126,13 +127,54 @@ namespace DMI_Parser
                 throw new FrameCountInvalidException("Frame count invalid, only Integers > 1 are allowed", this, frames);
             }
 
-            this.Frames = frames; //todo actually implement, maybe have images on first init already be pre-cut?
-            if(frames > 1){
-                _delays = new float[frames];
+            this.Frames = frames;
+            resizeImageArray(Dirs, Frames);
+            if(frames > 1)
+            {
+                if (_delays == null)
+                {
+                    _delays = new float[frames];
+                }
+                else
+                {
+                    float[] oldDelays = _delays;
+                    _delays = new float[frames];
+                    for (int i = 0; i < _delays.Length && i < oldDelays.Length; i++)
+                    {
+                        _delays[i] = oldDelays[i];
+                    }
+                }
             }else{ //we wont have delays with only one frame
                 _delays = null;
             }
             frameCountChanged?.Invoke(this, null);
+        }
+
+        //used by setDirs and setFrames to resize the image array
+        private void resizeImageArray(DirCount dirs, int frames)
+        {
+            Bitmap[,] oldImages = Images;
+            Images = new Bitmap[(int)dirs,frames];
+            for (int dir = 0; dir < (int)dirs; dir++)
+            {
+                Bitmap lastestImage = null;
+                for (int frame = 0; frame < frames; frame++)
+                {
+                    if (dir < oldImages.GetLength(0) && frame < oldImages.GetLength(1))
+                    {
+                        Images[dir, frame] = oldImages[dir, frame];
+                        lastestImage = oldImages[dir, frame];
+                    }
+                    else
+                    {
+                        if (lastestImage == null)
+                            Images[dir, frame] = Parent.CreateEmptyImage();
+                        else
+                            Images[dir, frame] = (Bitmap) lastestImage.Clone();
+
+                    }
+                }
+            }
         }
 
         public void setDelays(float[] delays){
