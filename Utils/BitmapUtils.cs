@@ -11,9 +11,6 @@ namespace DMI_Parser.Utils
 {
     public static class BitmapUtils
     {
-        [System.Runtime.InteropServices.DllImport("gdi32.dll")]
-        public static extern bool DeleteObject(IntPtr hObject);
-        
         public static ImageFactory Bitmap2ImageFactory(Bitmap bitmap)
         {
             ImageFactory imgF = new ImageFactory()
@@ -27,12 +24,12 @@ namespace DMI_Parser.Utils
 
         public static BitmapImage ImageFactory2BitmapImage(ImageFactory imageFactory)
         {
-            MemoryStream _imgStream = new MemoryStream(); 
-            imageFactory.Save(_imgStream);
+            MemoryStream imgStream = new MemoryStream(); 
+            imageFactory.Save(imgStream);
 
             BitmapImage bitmapImage = new BitmapImage();
             bitmapImage.BeginInit();
-            bitmapImage.StreamSource = _imgStream;
+            bitmapImage.StreamSource = imgStream;
             bitmapImage.EndInit();
 
             return bitmapImage;
