@@ -1,7 +1,9 @@
 using System;
 using System.Drawing;
 using System.Collections.Generic;
+using System.Windows.Media.Imaging;
 using DMI_Parser.Raw;
+using DMI_Parser.Utils;
 
 namespace DMI_Parser
 {
@@ -79,20 +81,15 @@ namespace DMI_Parser
             cutImages(full_image, img_offset);*/
 
             //subscribing our generic event to all specific ones
-            idChanged += OnSomethingChanged;
-            dirCountChanged += OnSomethingChanged;
-            frameCountChanged += OnSomethingChanged;
-            loopCountChanged += OnSomethingChanged;
-            rewindChanged += OnSomethingChanged;
+            idChanged += stateChanged;
+            dirCountChanged += stateChanged;
+            frameCountChanged += stateChanged;
+            loopCountChanged += stateChanged;
+            rewindChanged += stateChanged;
         }
 
-        private void OnSomethingChanged(object s, EventArgs e)
-        {
-            stateChanged?.Invoke(this, null);
-        }
-
-        public Bitmap getImage(int dir, int frame){
-            return Images[dir,frame];
+        public virtual BitmapImage getImage(int dir, int frame){
+            return BitmapUtils.Bitmap2BitmapImage(Images[dir,frame]);
         }
 
         public float getDelay(int frame)
@@ -153,28 +150,32 @@ namespace DMI_Parser
         //used by setDirs and setFrames to resize the image array
         private void resizeImageArray(DirCount dirs, int frames)
         {
-            Bitmap[,] oldImages = Images;
-            Images = new Bitmap[(int)dirs,frames];
+            ICloneable[,] oldImages = getOldImagesForArrayResize();
+            clearImageArray((int)dirs, frames);
             for (int dir = 0; dir < (int)dirs; dir++)
             {
-                Bitmap lastestImage = null;
+                ICloneable lastestImage = null;
                 for (int frame = 0; frame < frames; frame++)
                 {
                     if (dir < oldImages.GetLength(0) && frame < oldImages.GetLength(1))
                     {
-                        Images[dir, frame] = oldImages[dir, frame];
+                        addImage(dir, frame, oldImages[dir, frame]);
                         lastestImage = oldImages[dir, frame];
                     }
                     else
                     {
-                        if (lastestImage == null)
-                            Images[dir, frame] = Parent.CreateEmptyImage();
-                        else
-                            Images[dir, frame] = (Bitmap) lastestImage.Clone();
-
+                        addImage(dir, frame, lastestImage == null ? Parent.CreateEmptyImage() : lastestImage.Clone());
                     }
                 }
             }
+        }
+        
+        protected virtual void clearImageArray(int dirs, int frames) => Images = new Bitmap[(int)dirs,frames];
+
+        protected virtual ICloneable[,] getOldImagesForArrayResize() => Images;
+        protected virtual void addImage(int dir, int frame, object img)
+        {
+            Images[dir, frame] = (Bitmap) img;
         }
 
         public void setDelays(float[] delays){
@@ -211,11 +212,31 @@ namespace DMI_Parser
             rewindChanged?.Invoke(this, null);
         }
 
+        public RawDmiState toRaw()
+        {
+            RawDmiState raw = new RawDmiState();
+            
+            raw._delays = _delays;
+            raw.Dirs = Dirs;
+            raw.Frames = Frames;
+            raw.Hotspots = new List<RawHotspot>();
+            foreach (var hotspot in _hotspots)
+            {
+                raw.Hotspots.Add(hotspot.ToRawHotspot(Height, (int)Dirs));
+            }
+            raw.Id = Id;
+            raw.Loop = Loop;
+            raw.Movement = Movement;
+            raw.Rewind = Rewind;
+            
+            return raw;
+        }
+        
         public override string ToString()
         {
             string res = $"state = \"{Id}\"";
-            res += $"{Dmi.DMI_TAB}dirs = {Dirs}";
-            res += $"{Dmi.DMI_TAB}frames = {Frames}";
+            res += $"{Dmi.DmiTab}dirs = {Dirs}";
+            res += $"{Dmi.DmiTab}frames = {Frames}";
 
             if (_delays != null)
             {
@@ -224,17 +245,17 @@ namespace DMI_Parser
                 {
                     delayStrings[i] = _delays[i].ToString().Replace(',', '.');
                 }
-                res += $"{Dmi.DMI_TAB}delay = {String.Join(",", delayStrings)}";
+                res += $"{Dmi.DmiTab}delay = {String.Join(",", delayStrings)}";
             }
             
             if (Loop != 0)
-                res += $"{Dmi.DMI_TAB}loop = {Loop}";
+                res += $"{Dmi.DmiTab}loop = {Loop}";
 
             if (Rewind)
-                res += $"{Dmi.DMI_TAB}rewind = 1";
+                res += $"{Dmi.DmiTab}rewind = 1";
 
             if (Movement)
-                res += $"{Dmi.DMI_TAB}movement = 1";
+                res += $"{Dmi.DmiTab}movement = 1";
 
             foreach (var hspot in _hotspots)
             {

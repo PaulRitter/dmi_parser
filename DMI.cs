@@ -4,16 +4,15 @@ using System.Collections.Generic;
 using MetadataExtractor;
 using System.IO;
 using System.Drawing;
-using System.Drawing.Imaging;
-//using System.Windows.Media.Imaging;
 using DMI_Parser.Parsing;
 using DMI_Parser.Raw;
+using DMI_Parser.Utils;
 
 namespace DMI_Parser
 {
     public class Dmi
     {
-        public const string DMI_TAB = "        ";
+        public const string DmiTab = "        ";
 
         public string Name;
         public readonly float Version;
@@ -29,7 +28,7 @@ namespace DMI_Parser
         }
         
         //todo instance-method for saving
-        public bool Save()
+        public bool SaveAsDmi()
         {
             /*string filepath = $"{Name}.dmi";
 
@@ -52,10 +51,10 @@ namespace DMI_Parser
         //compiles a Bitmap of the entire DMI
         public Bitmap GetFullBitmap()
         {
-            int imgCount = getTotalImageCount();
+            int imgCount = GetTotalImageCount();
 
             int imgCountWidth = (int)Math.Ceiling(Math.Sqrt(imgCount));
-            int imgCountHeight = (int) Math.Ceiling((double)imgCount / (double)imgCountWidth);
+            int imgCountHeight = (int) Math.Ceiling((double)imgCount / imgCountWidth);
 
             int bitmapWidth = imgCountWidth * Width;
             int bitmapHeight = imgCountHeight * Height;
@@ -70,7 +69,7 @@ namespace DMI_Parser
                 {
                     for (int frame = 0; frame < state.Frames; frame++)
                     {
-                        Bitmap newImage = state.getImage(dir, frame);
+                        Bitmap newImage = BitmapUtils.BitmapImage2Bitmap(state.getImage(dir, frame));
 
                         Console.WriteLine($"{offset}");
                         
@@ -95,12 +94,12 @@ namespace DMI_Parser
             return res;
         }
 
-        public Bitmap CreateEmptyImage()
+        public virtual ICloneable CreateEmptyImage()
         {
             return new Bitmap(Width, Height);
         }
 
-        public int getTotalImageCount()
+        private int GetTotalImageCount()
         {
             int res = 0;
             foreach (var state in States)
@@ -115,8 +114,8 @@ namespace DMI_Parser
         {
             string res = "#BEGIN DMI";
             res += $"version = {Version}";
-            res += $"\n{DMI_TAB}width = {Width}";
-            res += $"\n{DMI_TAB}height = {Height}";
+            res += $"\n{DmiTab}width = {Width}";
+            res += $"\n{DmiTab}height = {Height}";
             foreach (var state in States)
             {
                 res += $"\n{state}";
@@ -137,7 +136,7 @@ namespace DMI_Parser
         public static Dmi FromFile(FileStream stream)
         {
             //get metadata
-            IEnumerator metadata = getDMIMetadata(stream).GetEnumerator();
+            IEnumerator metadata = GetDmiMetadata(stream).GetEnumerator();
 
             //file bitmap
             Bitmap image = new Bitmap(stream);
@@ -150,8 +149,6 @@ namespace DMI_Parser
             int? height = null;
 
             //for building states
-            Point offset = new Point(0, 0);
-            List<DMIState> states = new List<DMIState>();
             bool readingState = false;
             RawDmiState partialState = new RawDmiState();
             
@@ -248,10 +245,10 @@ namespace DMI_Parser
                             throw new StateArgumentDuplicateException("Argument duplicated", "delay");
                         }
 
-                        string[] raw_delays = current[1].Split(',');
-                        partialState._delays = new float[raw_delays.Length];
+                        string[] rawDelays = current[1].Split(',');
+                        partialState._delays = new float[rawDelays.Length];
                         int i = 0;
-                        foreach (string delay in raw_delays)
+                        foreach (string delay in rawDelays)
                         {
                             partialState._delays[i] = float.Parse(delay.Replace('.', ','));
                             i++;
@@ -322,7 +319,7 @@ namespace DMI_Parser
             return newDmi;
         }
 
-        private static String[] getDMIMetadata(FileStream stream)
+        private static String[] GetDmiMetadata(FileStream stream)
         {
             IReadOnlyList<MetadataExtractor.Directory> directories;
             try
@@ -340,19 +337,19 @@ namespace DMI_Parser
                 {
                     if (tag.Name != "Textual Data")
                         continue;
-                    string[] raw_metadata = tag.Description.Split(
+                    string[] rawMetadata = tag.Description.Split(
                         new[] {"\r\n", "\r", "\n"},
                         StringSplitOptions.None
                     );
                     int start = -1;
                     int end = -1;
-                    for (int i = 0; i < raw_metadata.Length; i++)
+                    for (int i = 0; i < rawMetadata.Length; i++)
                     {
-                        if (raw_metadata[i].Replace(" ", string.Empty).EndsWith("#BEGINDMI"))
+                        if (rawMetadata[i].Replace(" ", string.Empty).EndsWith("#BEGINDMI"))
                         {
                             start = i + 1;
                         }
-                        else if (raw_metadata[i].Replace(" ", string.Empty).EndsWith("#ENDDMI"))
+                        else if (rawMetadata[i].Replace(" ", string.Empty).EndsWith("#ENDDMI"))
                         {
                             end = i;
                         }
@@ -361,7 +358,7 @@ namespace DMI_Parser
                     if (end != -1 && start != -1)
                     {
                         string[] dmi_metadata = new string[end - start];
-                        Array.Copy(raw_metadata, start, dmi_metadata, 0, end - start);
+                        Array.Copy(rawMetadata, start, dmi_metadata, 0, end - start);
                         return dmi_metadata;
                     }
                 }

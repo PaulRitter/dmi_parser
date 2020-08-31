@@ -22,7 +22,7 @@
 
         public override string ToString()
         {
-            return $"{Dmi.DMI_TAB}hotspot = {X},{Y},{Index}";
+            return $"{Dmi.DmiTab}hotspot = {X},{Y},{Index}";
         }
     }
 }
