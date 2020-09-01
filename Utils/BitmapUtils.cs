@@ -3,9 +3,13 @@ using System.Drawing;
 using System.IO;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using ImageProcessor;
 using ImageProcessor.Imaging.Formats;
+using Color = System.Drawing.Color;
+using PixelFormat = System.Drawing.Imaging.PixelFormat;
+using Size = System.Drawing.Size;
 
 namespace DMI_Parser.Utils
 {
@@ -35,20 +39,6 @@ namespace DMI_Parser.Utils
             return bitmapImage;
         }
         
-        //todo potential memoryleak
         public static BitmapImage Bitmap2BitmapImage(Bitmap bitmap) => ImageFactory2BitmapImage(Bitmap2ImageFactory(bitmap));
-
-        public static Bitmap BitmapImage2Bitmap(BitmapImage bitmapImage)
-        {
-            using(MemoryStream outStream = new MemoryStream())
-            {
-                BitmapEncoder enc = new BmpBitmapEncoder();
-                enc.Frames.Add(BitmapFrame.Create(bitmapImage));
-                enc.Save(outStream);
-                Bitmap bitmap = new Bitmap(outStream);
-
-                return new Bitmap(bitmap);
-            }
-        }
     }
 }

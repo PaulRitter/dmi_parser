@@ -60,6 +60,7 @@ namespace DMI_Parser
             this.Frames = rawDmiState.Frames.Value;
             this.Dirs = rawDmiState.Dirs.Value;
             this.Images = images;
+            _delays = rawDmiState._delays;
             /*setDirs((DirCount)dirs);
 
             setFrames(frames);
@@ -90,6 +91,11 @@ namespace DMI_Parser
 
         public virtual BitmapImage getImage(int dir, int frame){
             return BitmapUtils.Bitmap2BitmapImage(Images[dir,frame]);
+        }
+
+        public virtual Bitmap getBitmap(int dir, int frame)
+        {
+            return (Bitmap)Images[dir, frame].Clone();
         }
 
         public float getDelay(int frame)
@@ -178,6 +184,8 @@ namespace DMI_Parser
             Images[dir, frame] = (Bitmap) img;
         }
 
+        public virtual int getImageCount() => Images.Length;
+
         public void setDelays(float[] delays){
             if((this._delays == null) && Frames == 1){
                 throw new FrameCountMismatchException("Only one Frame cannot allow delays", this);
@@ -235,8 +243,8 @@ namespace DMI_Parser
         public override string ToString()
         {
             string res = $"state = \"{Id}\"";
-            res += $"{Dmi.DmiTab}dirs = {Dirs}";
-            res += $"{Dmi.DmiTab}frames = {Frames}";
+            res += $"\n{Dmi.DmiTab}dirs = {(int)Dirs}";
+            res += $"\n{Dmi.DmiTab}frames = {Frames}";
 
             if (_delays != null)
             {
@@ -245,21 +253,21 @@ namespace DMI_Parser
                 {
                     delayStrings[i] = _delays[i].ToString().Replace(',', '.');
                 }
-                res += $"{Dmi.DmiTab}delay = {String.Join(",", delayStrings)}";
+                res += $"\n{Dmi.DmiTab}delay = {String.Join(",", delayStrings)}";
             }
             
             if (Loop != 0)
-                res += $"{Dmi.DmiTab}loop = {Loop}";
+                res += $"\n{Dmi.DmiTab}loop = {Loop}";
 
             if (Rewind)
-                res += $"{Dmi.DmiTab}rewind = 1";
+                res += $"\n{Dmi.DmiTab}rewind = 1";
 
             if (Movement)
-                res += $"{Dmi.DmiTab}movement = 1";
+                res += $"\n{Dmi.DmiTab}movement = 1";
 
             foreach (var hspot in _hotspots)
             {
-                res += hspot.ToSaveableString(Height, (int)Dirs);
+                res += "\n"+hspot.ToSaveableString(Height, (int)Dirs);
             }
             
             return res;

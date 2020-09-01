@@ -4,17 +4,25 @@ using System.Collections.Generic;
 using MetadataExtractor;
 using System.IO;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media.Imaging;
 using DMI_Parser.Parsing;
 using DMI_Parser.Raw;
 using DMI_Parser.Utils;
+using ImageProcessor;
+using ImageProcessor.Imaging.Formats;
+using Image = System.Windows.Controls.Image;
+using Point = System.Drawing.Point;
 
 namespace DMI_Parser
 {
     public class Dmi
     {
-        public const string DmiTab = "        ";
+        public const string DmiTab = "\t";
 
-        public string Name;
         public readonly float Version;
         public readonly int Width;
         public readonly int Height;
@@ -27,25 +35,63 @@ namespace DMI_Parser
             this.Height = height;
         }
         
-        //todo instance-method for saving
-        public bool SaveAsDmi()
+        public void SaveAsDmi(Stream imageStream)
         {
-            /*string filepath = $"{Name}.dmi";
-
-            string metadata = ToString();
+            PngChunk zTXtchunk = PngChunk.zTXtChunk(ToString());
+            
             Bitmap image = GetFullBitmap();
-            
-            image.Save(filepath, ImageFormat.Png);
-            
-            Stream pngStream = new System.IO.FileStream(filepath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
-            PngBitmapDecoder pngDecoder = new PngBitmapDecoder(pngStream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.Default);
-            BitmapFrame pngFrame = pngDecoder.Frames[0];
-            InPlaceBitmapMetadataWriter pngInplace = pngFrame.CreateInPlaceBitmapMetadataWriter();
-            if (pngInplace.TrySave())
-            { pngInplace.SetQuery("/Text/Description", "Have a nice day."); }
-            pngStream.Close();*/
 
-            return true;
+            MemoryStream imageByteStream = new MemoryStream();
+
+            ImageFactory imageFactory = new ImageFactory()
+                .Load(image)
+                .Format(new PngFormat())
+                .BackgroundColor(Color.Transparent)
+                .Save(imageByteStream);
+
+            imageByteStream.Position = 0;
+            
+            PngChunkStream pngStream = new PngChunkStream(imageByteStream);
+            PngChunkStream outStream = new PngChunkStream(imageStream);
+            imageStream.Write(new byte[]{137, 80, 78, 71, 13, 10, 26, 10});
+
+            PngChunk c;
+            bool metadataInserted = false;
+            do
+            {
+                c = pngStream.readChunk();
+                if (c.Type != "IEND" && c.Type != "IDAT" && c.Type != "IHDR") continue;
+
+                if (c.Type == "IDAT")
+                {
+                    if (!metadataInserted)
+                    {
+                        outStream.writeChunk(zTXtchunk);
+                        metadataInserted = true;
+                    }
+                    
+                    //split idat to chunks of 8192
+                    if (c.Data.Length > 8192)
+                    {
+                        Console.WriteLine(c.Data.Length);
+                        for (int i = 0; i < c.Data.Length;)
+                        {
+                            var len = c.Data.Length - i <= 8192 ? c.Data.Length - i : 8192;
+                            byte[] data = new byte[len];
+                            for (int j = 0; j < data.Length; j++)
+                            {
+                                data[j] = c.Data[i++];
+                            }
+                            Console.WriteLine(data.Length);
+                            PngChunk pngChunk = new PngChunk("IDAT", data);
+                        }
+                        continue;
+                    }
+                }
+                outStream.writeChunk(c);
+            } while (c.Type != "IEND" && c.Type != "    ");
+
+            if (!metadataInserted) throw new ParsingException("Failed to insert Metadata");
         }
 
         //compiles a Bitmap of the entire DMI
@@ -60,28 +106,25 @@ namespace DMI_Parser
             int bitmapHeight = imgCountHeight * Height;
             
             Bitmap res = new Bitmap(bitmapWidth, bitmapHeight);
+            
             Point offset = Point.Empty;
 
-            Console.WriteLine($"{bitmapWidth},{bitmapHeight}");
             foreach (var state in States)
             {
                 for (int dir = 0; dir < (int)state.Dirs; dir++)
                 {
                     for (int frame = 0; frame < state.Frames; frame++)
                     {
-                        Bitmap newImage = BitmapUtils.BitmapImage2Bitmap(state.getImage(dir, frame));
+                        Bitmap newImage = state.getBitmap(dir, frame);
 
-                        Console.WriteLine($"{offset}");
-                        
                         for (int x = 0; x < newImage.Width; x++)
                         {
                             for (int y = 0; y < newImage.Height; y++)
                             {
-                                //Console.WriteLine($"{x},{y}");
                                 res.SetPixel(offset.X + x, offset.Y + y, newImage.GetPixel(x,y));
                             }
                         }
-                        
+
                         offset = new Point(offset.X+Width, offset.Y+0);
                         if (offset.X >= bitmapWidth)
                         {
@@ -90,7 +133,7 @@ namespace DMI_Parser
                     }
                 }
             }
-
+            
             return res;
         }
 
@@ -104,7 +147,7 @@ namespace DMI_Parser
             int res = 0;
             foreach (var state in States)
             {
-                res += state.Images.Length;
+                res += state.getImageCount();
             }
 
             return res;
@@ -112,8 +155,8 @@ namespace DMI_Parser
         
         public override string ToString()
         {
-            string res = "#BEGIN DMI";
-            res += $"version = {Version}";
+            string res = "# BEGIN DMI";
+            res += $"\nversion = {Version}.0"; //todo no!
             res += $"\n{DmiTab}width = {Width}";
             res += $"\n{DmiTab}height = {Height}";
             foreach (var state in States)
@@ -121,7 +164,7 @@ namespace DMI_Parser
                 res += $"\n{state}";
             }
 
-            res += "#END DMI";
+            res += "\n# END DMI\n";
             return res;
         }
 
@@ -136,7 +179,8 @@ namespace DMI_Parser
         public static Dmi FromFile(FileStream stream)
         {
             //get metadata
-            IEnumerator metadata = GetDmiMetadata(stream).GetEnumerator();
+            IEnumerator metadata = GetDmiMetadata(stream)?.GetEnumerator();
+            if(metadata == null) throw new ParsingException("No DMI-Metadata found");
 
             //file bitmap
             Bitmap image = new Bitmap(stream);
@@ -247,11 +291,9 @@ namespace DMI_Parser
 
                         string[] rawDelays = current[1].Split(',');
                         partialState._delays = new float[rawDelays.Length];
-                        int i = 0;
-                        foreach (string delay in rawDelays)
+                        for (int i = 0; i < rawDelays.Length; i++)
                         {
-                            partialState._delays[i] = float.Parse(delay.Replace('.', ','));
-                            i++;
+                            partialState._delays[i] = float.Parse(rawDelays[i].Replace('.', ','));
                         }
                         break;
                     case "loop":
@@ -328,7 +370,7 @@ namespace DMI_Parser
             }
             catch (ImageProcessingException e)
             {
-                throw new InvalidFileException("File could not be read as a .dmi", e);
+                throw new InvalidFileException("File could not be read as a .png", e);
             }
 
             foreach (var directory in directories)
