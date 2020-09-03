@@ -1,9 +1,13 @@
 using System;
 using System.Drawing;
 using System.Collections.Generic;
+using System.IO;
 using System.Windows.Media.Imaging;
 using DMI_Parser.Raw;
 using DMI_Parser.Utils;
+using ImageProcessor;
+using ImageProcessor.Imaging;
+using ImageProcessor.Imaging.Formats;
 
 namespace DMI_Parser
 {
@@ -156,7 +160,7 @@ namespace DMI_Parser
         //used by setDirs and setFrames to resize the image array
         private void resizeImageArray(DirCount dirs, int frames)
         {
-            ICloneable[,] oldImages = getOldImagesForArrayResize();
+            ICloneable[,] oldImages = GetImages();
             clearImageArray((int)dirs, frames);
             for (int dir = 0; dir < (int)dirs; dir++)
             {
@@ -175,10 +179,37 @@ namespace DMI_Parser
                 }
             }
         }
+
+        //resizes all images using the parents width/height
+        public void resizeImages()
+        {
+            ICloneable[,] images = GetImages();
+            for (int dir = 0; dir < images.GetLength(0); dir++)
+            {
+                for (int frame = 0; frame < images.GetLength(1); frame++)
+                {
+                    resizeImage(dir, frame);
+                }
+            }
+        }
+
+        protected virtual void resizeImage(int dir, int frame)
+        {
+            MemoryStream imageStream = new MemoryStream();
+            ImageFactory imgF = new ImageFactory()
+                .Load(Images[dir,frame])
+                .Resize(new ResizeLayer(new Size(Parent.Width, Parent.Height), ResizeMode.Crop, AnchorPosition.TopLeft))
+                .Format(new PngFormat())
+                .Save(imageStream);
+            
+            Bitmap newBitmap = new Bitmap(imageStream);
+            imageStream.Close();
+            Images[dir, frame] = newBitmap;
+        }
         
         protected virtual void clearImageArray(int dirs, int frames) => Images = new Bitmap[(int)dirs,frames];
 
-        protected virtual ICloneable[,] getOldImagesForArrayResize() => Images;
+        protected virtual ICloneable[,] GetImages() => Images;
         protected virtual void addImage(int dir, int frame, object img)
         {
             Images[dir, frame] = (Bitmap) img;
