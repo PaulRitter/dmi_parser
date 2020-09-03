@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using MetadataExtractor;
 using System.IO;
 using System.Drawing;
+using System.Linq;
 using DMI_Parser.Parsing;
 using DMI_Parser.Raw;
 using ImageProcessor;
@@ -57,9 +58,20 @@ namespace DMI_Parser
                 addState(dmiStates[i]);
             }
         }
-        
+
         public void addState(DMIState dmiState)
         {
+            //todo deal with duplicate states... seriously, what should i do here?
+            /*if (States.Any(state => state.Id == dmiState.Id))
+            {
+                throw new ArgumentException("A state with that id already exists");
+            }*/
+
+            if (States.Contains(dmiState))
+            {
+                throw new ArgumentException("State already belongs to this DMI");
+            }
+            
             States.Add(dmiState);
             WidthChanged += dmiState.resizeImages;
             HeightChanged += dmiState.resizeImages;
@@ -76,8 +88,7 @@ namespace DMI_Parser
 
         public virtual void createNewState(string name)
         {
-            RawDmiState raw = RawDmiState.Default;
-            raw.Id = name;
+            RawDmiState raw = RawDmiState.Default(name);
 
             Bitmap[,] images = new Bitmap[1, 1];
             images[0,0] = (Bitmap) CreateEmptyImage();
@@ -219,7 +230,7 @@ namespace DMI_Parser
 
         public static Dmi FromFile(String filepath)
         {
-            FileStream stream = File.Open(filepath, FileMode.Open);
+            FileStream stream = File.Open(filepath, FileMode.Open); //todo catch errors and close stream
             Dmi result = FromFile(stream);
             stream.Close();
             return result;
