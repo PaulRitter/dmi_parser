@@ -4,17 +4,10 @@ using System.Collections.Generic;
 using MetadataExtractor;
 using System.IO;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Media.Imaging;
 using DMI_Parser.Parsing;
 using DMI_Parser.Raw;
-using DMI_Parser.Utils;
 using ImageProcessor;
 using ImageProcessor.Imaging.Formats;
-using Image = System.Windows.Controls.Image;
 using Point = System.Drawing.Point;
 
 namespace DMI_Parser
@@ -38,17 +31,15 @@ namespace DMI_Parser
         public void SaveAsDmi(Stream imageStream)
         {
             PngChunk zTXtchunk = PngChunk.zTXtChunk(ToString());
-            
+
             Bitmap image = GetFullBitmap();
-
+            
             MemoryStream imageByteStream = new MemoryStream();
-
             ImageFactory imageFactory = new ImageFactory()
                 .Load(image)
                 .Format(new PngFormat())
                 .BackgroundColor(Color.Transparent)
                 .Save(imageByteStream);
-
             imageByteStream.Position = 0;
             
             PngChunkStream pngStream = new PngChunkStream(imageByteStream);
@@ -156,7 +147,7 @@ namespace DMI_Parser
         public override string ToString()
         {
             string res = "# BEGIN DMI";
-            res += $"\nversion = {Version}.0"; //todo no!
+            res += $"\nversion = {Version}";
             res += $"\n{DmiTab}width = {Width}";
             res += $"\n{DmiTab}height = {Height}";
             foreach (var state in States)

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
-using System.IO.Compression;
 using System.Text;
+using Ionic.Zlib;
 
 namespace DMI_Parser.Utils
 {
@@ -93,19 +93,10 @@ namespace DMI_Parser.Utils
         {
             using (MemoryStream output = new MemoryStream())
             {
-                using (DeflateStream gzip = 
-                    new DeflateStream(output, CompressionLevel.Optimal))
+                using (ZlibStream stream = new ZlibStream(output, CompressionMode.Compress, Ionic.Zlib.CompressionLevel.BestCompression))
                 {
-                    
-                    gzip.Write(Encoding.ASCII.GetBytes(text));
-                    
-                    /*using (StreamWriter writer = 
-                        new StreamWriter(gzip, System.Text.Encoding.ASCII))
-                    {
-                        writer.Write(text);           
-                    }*/
+                    stream.Write(Encoding.ASCII.GetBytes(text));
                 }
-
                 return output.ToArray();
             }
         }

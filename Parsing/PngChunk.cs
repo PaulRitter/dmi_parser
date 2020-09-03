@@ -38,7 +38,7 @@ namespace DMI_Parser.Parsing
 
         public static PngChunk zTXtChunk(string text)
         {
-            byte[] add_data = {68, 101, 115, 99, 114, 105, 112, 116, 105, 111, 110, 0, 0, 0, 0}; //keyword "Description", Null-seperator (0) and compression method (0)
+            byte[] add_data = {68, 101, 115, 99, 114, 105, 112, 116, 105, 111, 110, 0, 0}; //keyword "Description", Null-seperator (0) and compression method (0)
 
             byte[] text_data = ByteUtils.Compress(text);
             
