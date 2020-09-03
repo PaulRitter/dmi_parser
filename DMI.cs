@@ -17,15 +17,64 @@ namespace DMI_Parser
         public const string DmiTab = "\t";
 
         public readonly float Version;
-        public readonly int Width;
-        public readonly int Height;
+        public int Width { get; private set; }
+        public int Height  { get; private set; }
         public List<DMIState> States = new List<DMIState>();
+
+        public event EventHandler WidthChanged;
+        public event EventHandler HeightChanged;
 
         public Dmi(float version, int width, int height)
         {
             this.Version = version;
             this.Width = width;
             this.Height = height;
+        }
+
+        public void setWidth(int width)
+        {
+            Width = width;
+            WidthChanged?.Invoke(this, EventArgs.Empty);
+        }
+        
+        public void setHeight(int height)
+        {
+            Height = height;
+            HeightChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void addStates(List<DMIState> dmiStates)
+        {
+            for (int i = 0; i < dmiStates.Count; i++)
+            {
+                addState(dmiStates[i]);
+            }
+        }
+        
+        public void addState(DMIState dmiState)
+        {
+            States.Add(dmiState);
+            WidthChanged += dmiState.resizeImages;
+            HeightChanged += dmiState.resizeImages;
+        }
+
+        public void removeState(DMIState dmiState)
+        {
+            States.Remove(dmiState);
+            WidthChanged -= dmiState.resizeImages;
+            HeightChanged -= dmiState.resizeImages;
+        }
+
+        public virtual void createNewState(string name)
+        {
+            RawDmiState raw = RawDmiState.Default;
+            raw.Id = name;
+
+            Bitmap[,] images = new Bitmap[1, 1];
+            images[0,0] = (Bitmap) CreateEmptyImage();
+            
+            DMIState dmiState = new DMIState(this, images, raw);
+            addState(dmiState);
         }
         
         public void SaveAsDmi(Stream imageStream)
@@ -229,14 +278,14 @@ namespace DMI_Parser
                             width ??= 32;
                             height ??= 32;
 
-                            version ??= 1.0f; //todo find current version and use it here
+                            version = 4.0f; //because we are saving in 4.0
                             newDmi ??= new Dmi(version.Value, width.Value, height.Value);
                             
                             imgCutter ??= new StateCutter(image, height.Value, width.Value);
 
                             Bitmap[,] images = imgCutter.CutImages(partialState.Dirs.Value, partialState.Frames.Value);
                             DMIState newState = new DMIState(newDmi, images, partialState);
-                            newDmi.States.Add(newState);
+                            newDmi.addState(newState);
                             partialState = new RawDmiState();
                         }
 
@@ -346,7 +395,7 @@ namespace DMI_Parser
 
                 Bitmap[,] images = imgCutter.CutImages(partialState.Dirs.Value, partialState.Frames.Value);
                 DMIState newState = new DMIState(newDmi, images, partialState);
-                newDmi.States.Add(newState);
+                newDmi.addState(newState);
             }
 
             return newDmi;

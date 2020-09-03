@@ -30,5 +30,11 @@ namespace DMI_Parser.Raw
             //TODO tostring
             return "TODO RawDmiState.ToString()";
         }
+        
+        public static RawDmiState Default => new RawDmiState
+        {
+            Dirs = DirCount.SINGLE,
+            Frames = 1,
+        };
     }
 }

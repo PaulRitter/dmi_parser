@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.IO;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media.Imaging;
 using DMI_Parser.Raw;
 using DMI_Parser.Utils;
@@ -86,11 +87,11 @@ namespace DMI_Parser
             cutImages(full_image, img_offset);*/
 
             //subscribing our generic event to all specific ones
-            idChanged += stateChanged;
-            dirCountChanged += stateChanged;
-            frameCountChanged += stateChanged;
-            loopCountChanged += stateChanged;
-            rewindChanged += stateChanged;
+            idChanged += (s,e) => stateChanged?.Invoke(this, EventArgs.Empty);
+            dirCountChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
+            frameCountChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
+            loopCountChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
+            rewindChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public virtual BitmapImage getImage(int dir, int frame){
@@ -180,6 +181,8 @@ namespace DMI_Parser
             }
         }
 
+        public void resizeImages(object sender, EventArgs e) => resizeImages();
+
         //resizes all images using the parents width/height
         public void resizeImages()
         {
@@ -206,7 +209,7 @@ namespace DMI_Parser
             imageStream.Close();
             Images[dir, frame] = newBitmap;
         }
-        
+
         protected virtual void clearImageArray(int dirs, int frames) => Images = new Bitmap[(int)dirs,frames];
 
         protected virtual ICloneable[,] GetImages() => Images;
