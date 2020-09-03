@@ -24,11 +24,18 @@ namespace DMI_Parser
         public event EventHandler WidthChanged;
         public event EventHandler HeightChanged;
 
+        public event EventHandler SizeChanged;
+
+        public event EventHandler StateListChanged;
+
         public Dmi(float version, int width, int height)
         {
             this.Version = version;
             this.Width = width;
             this.Height = height;
+
+            WidthChanged += (o, e) => SizeChanged?.Invoke(this, EventArgs.Empty);
+            HeightChanged += (o, e) => SizeChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void setWidth(int width)
@@ -56,6 +63,7 @@ namespace DMI_Parser
             States.Add(dmiState);
             WidthChanged += dmiState.resizeImages;
             HeightChanged += dmiState.resizeImages;
+            StateListChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void removeState(DMIState dmiState)
@@ -63,6 +71,7 @@ namespace DMI_Parser
             States.Remove(dmiState);
             WidthChanged -= dmiState.resizeImages;
             HeightChanged -= dmiState.resizeImages;
+            StateListChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public virtual void createNewState(string name)
