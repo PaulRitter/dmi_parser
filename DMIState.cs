@@ -19,8 +19,8 @@ namespace DMI_Parser
         public int Height => Parent.Height;
 
         public string Id { get; private set; }
-        public DirCount Dirs { get; private set; }
-        public int Frames { get; private set; }
+        public DirCount Dirs { get; protected set; }
+        public int Frames { get; protected set; }
         private float[] _delays;
         public int Loop { get; private set; } // 0 => infinite
         public bool Rewind { get; private set; }
@@ -35,6 +35,8 @@ namespace DMI_Parser
         public event EventHandler frameCountChanged;
         public event EventHandler loopCountChanged;
         public event EventHandler rewindChanged;
+        
+        public event EventHandler ImageArrayChanged;
 
         public DMIState(Dmi parent, Bitmap[,] images, RawDmiState rawDmiState)
         {
@@ -92,6 +94,7 @@ namespace DMI_Parser
             frameCountChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
             loopCountChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
             rewindChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
+            ImageArrayChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public virtual BitmapImage getImage(int dir, int frame){
@@ -159,7 +162,7 @@ namespace DMI_Parser
         }
 
         //used by setDirs and setFrames to resize the image array
-        private void resizeImageArray(DirCount dirs, int frames)
+        protected virtual void resizeImageArray(DirCount dirs, int frames)
         {
             ICloneable[,] oldImages = GetImages();
             clearImageArray((int)dirs, frames);
@@ -179,6 +182,12 @@ namespace DMI_Parser
                     }
                 }
             }
+            OnImageArrayChanged();
+        }
+        
+        protected void OnImageArrayChanged()
+        {
+            ImageArrayChanged?.Invoke(this,EventArgs.Empty);
         }
 
         public void resizeImages(object sender, EventArgs e) => resizeImages();

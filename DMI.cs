@@ -59,7 +59,7 @@ namespace DMI_Parser
             }
         }
 
-        public void addState(DMIState dmiState)
+        public void addState(DMIState dmiState, bool initialization = false)
         {
             //todo deal with duplicate states... seriously, what should i do here?
             /*if (States.Any(state => state.Id == dmiState.Id))
@@ -75,14 +75,24 @@ namespace DMI_Parser
             States.Add(dmiState);
             WidthChanged += dmiState.resizeImages;
             HeightChanged += dmiState.resizeImages;
+            onStateAdded(dmiState, initialization);
+        }
+
+        protected virtual void onStateAdded(DMIState state, bool initialization = false)
+        {
             StateListChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public void removeState(DMIState dmiState)
+        public void removeState(DMIState dmiState, bool initialization = false)
         {
             States.Remove(dmiState);
             WidthChanged -= dmiState.resizeImages;
             HeightChanged -= dmiState.resizeImages;
+            OnStateRemoved(dmiState, initialization);
+        }
+
+        protected virtual void OnStateRemoved(DMIState state, bool initialization = false)
+        {
             StateListChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -305,7 +315,7 @@ namespace DMI_Parser
 
                             Bitmap[,] images = imgCutter.CutImages(partialState.Dirs.Value, partialState.Frames.Value);
                             DMIState newState = new DMIState(newDmi, images, partialState);
-                            newDmi.addState(newState);
+                            newDmi.addState(newState, true);
                             partialState = new RawDmiState();
                         }
 
@@ -415,7 +425,7 @@ namespace DMI_Parser
 
                 Bitmap[,] images = imgCutter.CutImages(partialState.Dirs.Value, partialState.Frames.Value);
                 DMIState newState = new DMIState(newDmi, images, partialState);
-                newDmi.addState(newState);
+                newDmi.addState(newState, true);
             }
 
             return newDmi;
