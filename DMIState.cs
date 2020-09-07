@@ -18,34 +18,170 @@ namespace DMI_Parser
         public int Width => Parent.Width;
         public int Height => Parent.Height;
 
-        public string Id { get; private set; }
-        public DirCount Dirs { get; protected set; }
-        public int Frames { get; protected set; }
+        #region properties
+        private string _id;
+        public string Id
+        {
+            get => _id;
+            set
+            {
+                if (value == _id) return;
+                
+                _id = value;
+                IdChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public event EventHandler IdChanged;
+
+        private DirCount _dirs;
+        public DirCount Dirs
+        {
+            get => _dirs;
+            set
+            {
+                if (value == _dirs) return;
+            
+                _dirs = value;
+                ResizeImageArray(Dirs, Frames);
+                DirCountChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public event EventHandler DirCountChanged;
+
+        private int _frames;
+        public int Frames
+        {
+            get => _frames;
+            set
+            {
+                if (value == _frames) return;
+            
+                if(value < 1){
+                    throw new FrameCountInvalidException("Frame count invalid, only Integers > 1 are allowed", this, value);
+                }
+
+                _frames = value;
+                ResizeImageArray(Dirs, Frames);
+                if(_frames > 1)
+                {
+                    float[] newDelays;
+                    if (Delays == null)
+                    {
+                        newDelays = new float[_frames]; //todo whats the default delay value?
+                    }
+                    else
+                    {
+                        var oldDelays = Delays;
+                        newDelays = new float[_frames];
+                        for (var i = 0; i < _delays.Length && i < oldDelays.Length; i++)
+                        {
+                            newDelays[i] = oldDelays[i];
+                        }
+                    }
+                    Delays = newDelays;
+                }else{ //we wont have delays with only one frame
+                    Delays = null;
+                }
+                FrameCountChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public event EventHandler FrameCountChanged;
+        
         private float[] _delays;
-        public int Loop { get; private set; } // 0 => infinite
-        public bool Rewind { get; private set; }
-        public bool Movement { get; private set; }
-        private List<Hotspot> _hotspots;
-        public Bitmap[,] Images; //index is dir + dir*frame
+        public float[] Delays
+        {
+            get => _delays; //todo does this mean you could edit it from the outside? investigate
+            private set
+            {
+                if (value == _delays) return;
+                
+                if((value != null) && Frames == 1){
+                    throw new FrameCountMismatchException("Only one Frame cannot allow delays", this);
+                }
+
+                if((value == null && value != _delays) || value?.Length != _delays?.Length){
+                    throw new DelayCountMismatchException("Delaycount doesn't match", this, value?.Length ?? 0, _delays?.Length ?? 0);
+                }
+                
+                _delays = value;
+                DelayListChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public event EventHandler DelayListChanged;
+        public void SetDelay(int index, float delay)
+        {
+            _delays[index] = delay;
+            DelayListChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private int _loop; // 0 => infinite
+        public int Loop
+        {
+            get => _loop;
+            set
+            {
+                if (value == _loop) return;
+
+                if (value < 0) throw new ArgumentException("Loopcount cannot be < 0");
+                
+                _loop = value;
+                LoopCountChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public event EventHandler LoopCountChanged;
+
+        private bool _rewind;
+        public bool Rewind
+        {
+            get => _rewind;
+            private set
+            {
+                if (value == _rewind) return;
+
+                _rewind = value;
+                RewindChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public event EventHandler RewindChanged;
+
+        private bool _movement;
+        public bool Movement
+        {
+            get => _movement;
+            private set
+            {
+                if (value == _movement) return;
+
+                _movement = value;
+                MovementChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public event EventHandler MovementChanged;
         
-        //Events
-        public event EventHandler stateChanged;
-        public event EventHandler idChanged;
-        public event EventHandler dirCountChanged;
-        public event EventHandler frameCountChanged;
-        public event EventHandler loopCountChanged;
-        public event EventHandler rewindChanged;
+        private List<Hotspot> _hotspots; //todo hotspots
+        #endregion
+
+        private Bitmap[,] _images; //index is dir, frame
         
+        public event EventHandler StateChanged;
         public event EventHandler ImageArrayChanged;
 
+        /*todo
+        public DMIState(Dmi parent)
+        {
+            
+        }
+        */
+        
         public DMIState(Dmi parent, Bitmap[,] images, RawDmiState rawDmiState)
         {
             //can set all these without validation
             Parent = parent;
-            Loop = rawDmiState.Loop;
-            Rewind = rawDmiState.Rewind;
-            Movement = rawDmiState.Movement;
-            Id = rawDmiState.Id;
+            _loop = rawDmiState.Loop;
+            _rewind = rawDmiState.Rewind;
+            _movement = rawDmiState.Movement;
+            _id = rawDmiState.Id;
+            _images = images;
 
             //validating and adding hotspots
             _hotspots = new List<Hotspot>();
@@ -64,121 +200,80 @@ namespace DMI_Parser
             }
             
             // todo validate dir and framecount with delays and picturearray
-            this.Frames = rawDmiState.Frames.Value;
-            this.Dirs = rawDmiState.Dirs.Value;
-            this.Images = images;
-            _delays = rawDmiState._delays;
-            /*setDirs((DirCount)dirs);
-
-            setFrames(frames);
-            if (delays != null)
+            // if frames, dirs & delays mismatch image, adjust them to the array
+            if (!rawDmiState.Dirs.HasValue || _images.GetLength(0) != (int)rawDmiState.Dirs.Value)
             {
-                if (delays.Length > this._delays.Length)
-                {
-                    float[] old_delays = delays;
-                    delays = new float[this._delays.Length];
-                    for (int i = 0; i < delays.Length; i++)
-                    {
-                        delays[i] = old_delays[i];
-                    }
-                }
-
-                setDelays(delays);
+                //todo [logging] warning
+                _dirs = (DirCount)_images.GetLength(0);
+            }
+            else
+            {
+                _dirs = rawDmiState.Dirs.Value;
+            }
+            
+            if (!rawDmiState.Frames.HasValue || _images.GetLength(1) != (int)rawDmiState.Frames.Value)
+            {
+                //todo [logging] warning
+                _frames = _images.GetLength(1);
+            }
+            else
+            {
+                _frames = rawDmiState.Frames.Value;
             }
 
-            cutImages(full_image, img_offset);*/
+            if ((rawDmiState._delays == null && Frames != 1 ) || rawDmiState._delays.Length != Frames)
+            {
+                //todo [logging] warning
+                
+                float[] new_delays = new float[Frames];
+                for (int i = 0; i < new_delays.Length && i < rawDmiState._delays?.Length; i++)
+                {
+                    new_delays[i] = rawDmiState._delays[i];
+                }
+
+                _delays = new_delays;
+            }
+            else
+            {
+                _delays = rawDmiState._delays;
+            }
 
             //subscribing our generic event to all specific ones
-            idChanged += (s,e) => stateChanged?.Invoke(this, EventArgs.Empty);
-            dirCountChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
-            frameCountChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
-            loopCountChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
-            rewindChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
-            ImageArrayChanged += (s, e) => stateChanged?.Invoke(this, EventArgs.Empty);
+            IdChanged += OnAnyChange;
+            DirCountChanged += OnAnyChange;
+            FrameCountChanged += OnAnyChange;
+            DelayListChanged += OnAnyChange;
+            LoopCountChanged += OnAnyChange;
+            RewindChanged += OnAnyChange;
+            MovementChanged += OnAnyChange;
+            ImageArrayChanged += OnAnyChange;
         }
 
-        public virtual BitmapImage getImage(int dir, int frame){
-            return BitmapUtils.Bitmap2BitmapImage(Images[dir,frame]);
-        }
+        protected void OnAnyChange(object sender, EventArgs e) => StateChanged?.Invoke(sender, e);
 
-        public virtual Bitmap getBitmap(int dir, int frame)
+        public virtual Bitmap GetBitmap(int dir, int frame)
         {
-            return (Bitmap)Images[dir, frame].Clone();
+            return (Bitmap)_images[dir, frame].Clone();
         }
-
-        public float getDelay(int frame)
-        {
-            if(frame < 0 || frame > _delays.Length-1) throw new ArgumentException($"Delay for Frame {frame} does not exist");
-            
-            return _delays[frame];
-        }
-
-        public void setID(string id)
-        {
-            if (id == this.Id) return;
-
-            this.Id = id;
-            idChanged?.Invoke(this, null);
-        }
-
-        public void setDirs(DirCount dirs)
-        {
-            if (dirs == this.Dirs) return;
-            
-            this.Dirs = dirs;
-            resizeImageArray(Dirs, Frames);
-            dirCountChanged?.Invoke(this, null);
-        }
-
-        public void setFrames(int frames)
-        {
-            if (frames == this.Frames) return;
-            
-            if(frames < 1){
-                throw new FrameCountInvalidException("Frame count invalid, only Integers > 1 are allowed", this, frames);
-            }
-
-            this.Frames = frames;
-            resizeImageArray(Dirs, Frames);
-            if(frames > 1)
-            {
-                if (_delays == null)
-                {
-                    _delays = new float[frames];
-                }
-                else
-                {
-                    float[] oldDelays = _delays;
-                    _delays = new float[frames];
-                    for (int i = 0; i < _delays.Length && i < oldDelays.Length; i++)
-                    {
-                        _delays[i] = oldDelays[i];
-                    }
-                }
-            }else{ //we wont have delays with only one frame
-                _delays = null;
-            }
-            frameCountChanged?.Invoke(this, null);
-        }
-
-        //used by setDirs and setFrames to resize the image array
-        protected virtual void resizeImageArray(DirCount dirs, int frames)
+        
+        //used by dir setter and frame setter to resize the image array
+        protected virtual void ResizeImageArray(DirCount dirs, int frames)
         {
             ICloneable[,] oldImages = GetImages();
             clearImageArray((int)dirs, frames);
             for (int dir = 0; dir < (int)dirs; dir++)
             {
-                ICloneable lastestImage = null;
+                ICloneable latestImage = null;
                 for (int frame = 0; frame < frames; frame++)
                 {
                     if (dir < oldImages.GetLength(0) && frame < oldImages.GetLength(1))
                     {
                         addImage(dir, frame, oldImages[dir, frame]);
-                        lastestImage = oldImages[dir, frame];
+                        latestImage = oldImages[dir, frame];
                     }
                     else
                     {
-                        addImage(dir, frame, lastestImage == null ? Parent.CreateEmptyImage() : lastestImage.Clone());
+                        addImage(dir, frame, latestImage == null ? Parent.CreateEmptyImage() : latestImage.Clone());
                     }
                 }
             }
@@ -209,61 +304,27 @@ namespace DMI_Parser
         {
             MemoryStream imageStream = new MemoryStream();
             ImageFactory imgF = new ImageFactory()
-                .Load(Images[dir,frame])
+                .Load(_images[dir,frame])
                 .Resize(new ResizeLayer(new Size(Parent.Width, Parent.Height), ResizeMode.Crop, AnchorPosition.TopLeft))
                 .Format(new PngFormat())
                 .Save(imageStream);
             
             Bitmap newBitmap = new Bitmap(imageStream);
             imageStream.Close();
-            Images[dir, frame] = newBitmap;
+            _images[dir, frame] = newBitmap;
         }
 
-        protected virtual void clearImageArray(int dirs, int frames) => Images = new Bitmap[(int)dirs,frames];
+        protected virtual void clearImageArray(int dirs, int frames) => _images = new Bitmap[dirs,frames];
 
-        protected virtual ICloneable[,] GetImages() => Images;
+        protected virtual ICloneable[,] GetImages() => _images;
         protected virtual void addImage(int dir, int frame, object img)
         {
-            Images[dir, frame] = (Bitmap) img;
+            _images[dir, frame] = (Bitmap) img;
         }
 
-        public virtual int getImageCount() => Images.Length;
+        public virtual int getImageCount() => _images.Length;
 
-        public void setDelays(float[] delays){
-            if((this._delays == null) && Frames == 1){
-                throw new FrameCountMismatchException("Only one Frame cannot allow delays", this);
-            }
-
-            if(this._delays.Length != delays.Length){
-                throw new DelayCountMismatchException("Delaycount doesn't match", this, this._delays.Length, delays.Length);
-            }
-            this._delays = delays;
-        }
-
-        public void setDelay(int index, float delay){
-            _delays[index] = delay; //will throw IndexOutOfRangeException if index invalid, intended
-        }
-
-        public void setLoop(int loop)
-        {
-            if (loop == Loop)  return;
-            
-            if (loop < 0)
-                throw new ArgumentException("Loopcount cannot be < 0");
-
-            Loop = loop;
-            loopCountChanged?.Invoke(this, null);
-        }
-
-        public void setRewind(bool rewind)
-        {
-            if(rewind == Rewind) return;
-
-            Rewind = rewind;
-            rewindChanged?.Invoke(this, null);
-        }
-
-        public RawDmiState toRaw()
+        public RawDmiState ToRaw()
         {
             RawDmiState raw = new RawDmiState();
             

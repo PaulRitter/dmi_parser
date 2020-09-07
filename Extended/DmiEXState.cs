@@ -9,7 +9,7 @@ namespace DMI_Parser.Extended
     {
         public static DmiEXState FromDmiState(DmiEX parent, DMIState dmiState)
         {
-            RawDmiState raw = dmiState.toRaw();
+            RawDmiState raw = dmiState.ToRaw();
             
             DmiEXImage[,] images = new DmiEXImage[(int)raw.Dirs.Value,raw.Frames.Value];
             for (int dir = 0; dir < (int)raw.Dirs.Value; dir++)
