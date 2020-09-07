@@ -134,7 +134,7 @@ namespace DMI_Parser
         public bool Rewind
         {
             get => _rewind;
-            private set
+            set
             {
                 if (value == _rewind) return;
 
@@ -148,7 +148,7 @@ namespace DMI_Parser
         public bool Movement
         {
             get => _movement;
-            private set
+            set
             {
                 if (value == _movement) return;
 

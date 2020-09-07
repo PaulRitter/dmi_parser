@@ -72,6 +72,8 @@ namespace DMI_Parser.Extended
 
         public Color GetPixel(Point p) => _bitmap.GetPixel(p.X, p.Y);
 
+        public Bitmap GetBitmap() => (Bitmap) _bitmap.Clone();
+        
         public void Resize(int width, int height)
         {
             MemoryStream imageStream = new MemoryStream();

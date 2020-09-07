@@ -62,6 +62,8 @@ namespace DMI_Parser.Extended
             _images[dir, frame] = (DmiEXImage) img;
         }
 
+        public DmiEXImage GetImage(int dir, int frame) => _images[dir, frame];
+
         protected override void ResizeImage(int dir, int frame)
         {
             _images[dir,frame].Resize(Width, Height);
