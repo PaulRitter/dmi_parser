@@ -142,7 +142,6 @@ namespace DMI_Parser
             do
             {
                 c = pngStream.readChunk();
-                if (c.Type != "IEND" && c.Type != "IDAT" && c.Type != "IHDR") continue;
 
                 if (c.Type == "IDAT")
                 {
@@ -151,25 +150,6 @@ namespace DMI_Parser
                         outStream.writeChunk(zTXtchunk);
                         metadataInserted = true;
                     }
-                    
-                    //todo is this needed?
-                    //split idat to chunks of 8192
-                    /*if (c.Data.Length > 8192)
-                    {
-                        Console.WriteLine(c.Data.Length);
-                        for (int i = 0; i < c.Data.Length;)
-                        {
-                            var len = c.Data.Length - i <= 8192 ? c.Data.Length - i : 8192;
-                            byte[] data = new byte[len];
-                            for (int j = 0; j < data.Length; j++)
-                            {
-                                data[j] = c.Data[i++];
-                            }
-                            Console.WriteLine(data.Length);
-                            PngChunk pngChunk = new PngChunk("IDAT", data);
-                        }
-                        continue;
-                    }*/
                 }
                 outStream.writeChunk(c);
             } while (c.Type != "IEND" && c.Type != "    ");

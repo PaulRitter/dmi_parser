@@ -201,7 +201,8 @@ namespace DMI_Parser
             
             // todo validate dir and framecount with delays and picturearray
             // if frames, dirs & delays mismatch image, adjust them to the array
-            if (!rawDmiState.Dirs.HasValue || _images.GetLength(0) != (int)rawDmiState.Dirs.Value)
+
+            if (_images != null && (!rawDmiState.Dirs.HasValue || _images.GetLength(0) != (int)rawDmiState.Dirs.Value))
             {
                 //todo [logging] warning
                 _dirs = (DirCount)_images.GetLength(0);
@@ -210,8 +211,8 @@ namespace DMI_Parser
             {
                 _dirs = rawDmiState.Dirs.Value;
             }
-            
-            if (!rawDmiState.Frames.HasValue || _images.GetLength(1) != (int)rawDmiState.Frames.Value)
+        
+            if (_images != null && (!rawDmiState.Frames.HasValue || _images.GetLength(1) != (int)rawDmiState.Frames.Value))
             {
                 //todo [logging] warning
                 _frames = _images.GetLength(1);
@@ -221,10 +222,10 @@ namespace DMI_Parser
                 _frames = rawDmiState.Frames.Value;
             }
 
-            if ((rawDmiState._delays == null && Frames != 1 ) || rawDmiState._delays.Length != Frames)
+            if (_images != null && (rawDmiState._delays == null && Frames != 1 ) || (rawDmiState._delays != null && rawDmiState._delays.Length != Frames))
             {
                 //todo [logging] warning
-                
+            
                 float[] new_delays = new float[Frames];
                 for (int i = 0; i < new_delays.Length && i < rawDmiState._delays?.Length; i++)
                 {
@@ -237,6 +238,7 @@ namespace DMI_Parser
             {
                 _delays = rawDmiState._delays;
             }
+            
 
             //subscribing our generic event to all specific ones
             IdChanged += OnAnyChange;
