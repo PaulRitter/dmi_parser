@@ -26,42 +26,21 @@ namespace DMI_Parser.Extended
             Width = bm.Width;
             Height = bm.Height;
             AddLayer(new DmiEXLayer(bm, 0));
-            ImageChanged += (sender, e) => _bufferedImage = null;
-            LayerListChanged += (sender, e) => ImageChanged?.Invoke(this, EventArgs.Empty);
+            LayerListChanged += OnImageChanged;
         }
-
-        public void SetLayerIndex(DmiEXLayer layer, int index)
-        {
-            layer.Index = index;
-            int duplicateIndex = index;
-            DmiEXLayer[] layers = _layers.ToArray();
-            for (int i = 0; i < layers.Length; i++)
-            {
-                DmiEXLayer l = layers[i];
-                if (l.Index != duplicateIndex || l == layer) continue;
-                l.Index++;
-                duplicateIndex++;
-            }
-        }
+        
+        private void OnImageChanged(object sender = null, EventArgs e = null) => ImageChanged?.Invoke(this, EventArgs.Empty); 
 
         public void AddLayer(DmiEXLayer l)
         {
-            //moving all layers in the way one step up
-            int increaseAtIndex = l.Index;
-            DmiEXLayer[] layers = _layers.ToArray();
-            for (int i = 0; i < layers.Length; i++)
-            {
-                DmiEXLayer layer = layers[i];
-                if (layer.Index != increaseAtIndex) continue;
-                layer.Index++;
-                increaseAtIndex++;
-            }
+            if(_layers.Contains(l)) throw new ArgumentException("Layer already part of image");
             
+            ClearIndex(l.Index);
             _layers.Add(l);
             SortLayers();
             l.IndexChanged += SortLayers;
-            
-            l.Changed += (sender, e) => ImageChanged?.Invoke(this, EventArgs.Empty); //any change on the layer means a change on the image
+
+            l.Changed += OnImageChanged; //any change on the layer means a change on the image
             LayerListChanged?.Invoke(this, EventArgs.Empty);
         }
         
@@ -71,10 +50,30 @@ namespace DMI_Parser.Extended
         {
             if(_layers.Count == 1) throw new WarningException("You can't remove the only Layer of the image");
             DmiEXLayer l = GetLayerByIndex(index);
+            l.IndexChanged -= SortLayers;
+            l.Changed -= OnImageChanged;
             _layers.Remove(l);
             LayerListChanged?.Invoke(this, EventArgs.Empty);
         }
         
+        public void SetLayerIndex(DmiEXLayer layer, int index)
+        {
+            ClearIndex(index);
+            layer.Index = index;
+        }
+
+        private void ClearIndex(int index)
+        {
+            DmiEXLayer[] layers = _layers.ToArray();
+            for (int i = 0; i < layers.Length; i++)
+            {
+                DmiEXLayer layer = layers[i];
+                if (layer.Index != index) continue;
+                layer.Index++;
+                index++;
+            }
+        }
+
         private void SortLayers(object sender = null, EventArgs e = null)
             => _layers.Sort((l1,l2)=>l1.Index.CompareTo(l2.Index));
 
@@ -87,71 +86,51 @@ namespace DMI_Parser.Extended
             return layer;
         }
 
-        private BitmapImage _bufferedImage;
-        public BitmapImage GetImage()
-        {
-            if (_bufferedImage != null) return _bufferedImage;
-
-            if (_layers.FindAll((l) => l.Visible).Count == 0)
-                return BitmapUtils.Bitmap2BitmapImage(new Bitmap(Width, Height));
-
-            _bufferedImage = BitmapUtils.ImageFactory2BitmapImage(getImageFactory());
-            return _bufferedImage;
-        }
-
         public Bitmap GetBitmap()
         {
             MemoryStream memoryStream = new MemoryStream();
-            ImageFactory ImageFactory = getImageFactory();
-            ImageFactory.Save(memoryStream);
-
-            return new Bitmap(memoryStream);
-
-        }
-
-        private ImageFactory getImageFactory()
-        {
+            
             ImageFactory imgF = new ImageFactory();
             bool first = true;
 
-            SortLayers();
+            SortLayers(); //better safe than sorry, probably not needed, todo [logging] check if this changes anything at anytime, then provide warning
             for (int i = 0; i < _layers.Count; i++)
             {
                 DmiEXLayer dmiExLayer = _layers[i];
                 if (!dmiExLayer.Visible) continue;
                 if (first)
                 {
-                    imgF.Load(dmiExLayer.Bitmap);
+                    imgF.Load(dmiExLayer.GetBitmap());
                     first = false;
                     continue;
                 }
 
-                ImageLayer l = new ImageLayer();
-                l.Image = dmiExLayer.Bitmap;
+                ImageLayer l = new ImageLayer { Image = dmiExLayer.GetBitmap() };
                 imgF.Overlay(l);
             }
 
             imgF.Resolution(Width, Height)
                 .Format(new PngFormat())
-                .BackgroundColor(Color.Transparent);
+                .BackgroundColor(Color.Transparent)
+                .Save(memoryStream);
 
-            return imgF;
+            return new Bitmap(memoryStream);
         }
-
+        
         public void Resize(int width, int height)
         {
             Width = width;
             Height = height;
-            for (int i = 0; i < _layers.Count; i++)
+            foreach (var layer in _layers)
             {
-                _layers[i].Resize(width,height);
+                layer.Resize(width,height);
             }
+            OnImageChanged();
         }
         
         public object Clone()
         {
-            DmiEXImage image = new DmiEXImage(Width, Height);
-            image._layers = new List<DmiEXLayer>();
+            DmiEXImage image = new DmiEXImage(Width, Height) { _layers = new List<DmiEXLayer>() };
             foreach (var layer in _layers)
             {
                 image.AddLayer((DmiEXLayer)layer.Clone());
