@@ -20,7 +20,7 @@ namespace DMI_Parser.Extended
             
             foreach (var state in dmi.States)
             {
-                dmiEx.AddState(DmiEXState.FromDmiState(dmiEx, state), true); //todo change
+                dmiEx.AddState(DmiEXState.FromDmiState(dmiEx, state));
             }
 
             return dmiEx;
@@ -34,7 +34,7 @@ namespace DMI_Parser.Extended
             images[0,0] = (DmiEXImage) CreateEmptyImage();
             
             DmiEXState dmiState = new DmiEXState(this, images, raw);
-            AddState(dmiState, true);
+            AddState(dmiState);
         }
     }
 }

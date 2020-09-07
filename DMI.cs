@@ -23,6 +23,7 @@ namespace DMI_Parser
         private int _height;
         
         private List<DMIState> _states = new List<DMIState>();
+        public DMIState[] States => _states.ToArray();
 
         public int Width
         {
