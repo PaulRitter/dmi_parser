@@ -35,12 +35,12 @@ namespace DMI_Parser.Extended
         {
         }
 
-        public override BitmapImage getImage(int dir, int frame)
+        public override BitmapImage GetImage(int dir, int frame)
         {
             return Images[dir, frame].GetImage();
         }
 
-        public override Bitmap getBitmap(int dir, int frame)
+        public override Bitmap GetBitmap(int dir, int frame)
         {
             return Images[dir, frame].GetBitmap();
         }

@@ -18,48 +18,61 @@ namespace DMI_Parser
         public const string DmiTab = "\t";
 
         public readonly float Version;
-        public int Width { get; private set; }
-        public int Height  { get; private set; }
-        public List<DMIState> States = new List<DMIState>();
+
+        private int _width;
+        private int _height;
+        
+        private List<DMIState> _states = new List<DMIState>();
+
+        public int Width
+        {
+            get => _width;
+            set
+            {
+                if (value == _width) return;
+                
+                _width = value;
+                WidthChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public int Height
+        {
+            get => _height;
+            set
+            {
+                if (value == _height) return;
+                
+                _height = value;
+                HeightChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        
 
         public event EventHandler WidthChanged;
         public event EventHandler HeightChanged;
-
         public event EventHandler SizeChanged;
 
         public event EventHandler StateListChanged;
 
         public Dmi(float version, int width, int height)
         {
-            this.Version = version;
-            this.Width = width;
-            this.Height = height;
+            Version = version;
+            Width = width;
+            Height = height;
 
             WidthChanged += (o, e) => SizeChanged?.Invoke(this, EventArgs.Empty);
             HeightChanged += (o, e) => SizeChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public void setWidth(int width)
-        {
-            Width = width;
-            WidthChanged?.Invoke(this, EventArgs.Empty);
-        }
-        
-        public void setHeight(int height)
-        {
-            Height = height;
-            HeightChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void addStates(List<DMIState> dmiStates)
+        public void AddStates(List<DMIState> dmiStates)
         {
             for (int i = 0; i < dmiStates.Count; i++)
             {
-                addState(dmiStates[i]);
+                AddState(dmiStates[i]);
             }
         }
 
-        public void addState(DMIState dmiState, bool initialization = false)
+        public void AddState(DMIState dmiState)
         {
             //todo deal with duplicate states... seriously, what should i do here?
             /*if (States.Any(state => state.Id == dmiState.Id))
@@ -67,36 +80,34 @@ namespace DMI_Parser
                 throw new ArgumentException("A state with that id already exists");
             }*/
 
-            if (States.Contains(dmiState))
+            if (_states.Contains(dmiState))
             {
                 throw new ArgumentException("State already belongs to this DMI");
             }
             
-            States.Add(dmiState);
-            WidthChanged += dmiState.resizeImages;
-            HeightChanged += dmiState.resizeImages;
-            onStateAdded(dmiState, initialization);
+            _states.Add(dmiState);
+            OnStateAdded(dmiState);
         }
 
-        protected virtual void onStateAdded(DMIState state, bool initialization = false)
+        protected virtual void OnStateAdded(DMIState state)
         {
+            SizeChanged += state.resizeImages;
             StateListChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public void removeState(DMIState dmiState, bool initialization = false)
+        public void RemoveState(DMIState dmiState)
         {
-            States.Remove(dmiState);
-            WidthChanged -= dmiState.resizeImages;
-            HeightChanged -= dmiState.resizeImages;
-            OnStateRemoved(dmiState, initialization);
+            _states.Remove(dmiState);
+            OnStateRemoved(dmiState);
         }
 
-        protected virtual void OnStateRemoved(DMIState state, bool initialization = false)
+        protected virtual void OnStateRemoved(DMIState state)
         {
+            SizeChanged -= state.resizeImages;
             StateListChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public virtual void createNewState(string name)
+        public virtual void AddNewState(string name)
         {
             RawDmiState raw = RawDmiState.Default(name);
 
@@ -104,7 +115,7 @@ namespace DMI_Parser
             images[0,0] = (Bitmap) CreateEmptyImage();
             
             DMIState dmiState = new DMIState(this, images, raw);
-            addState(dmiState);
+            AddState(dmiState);
         }
         
         public void SaveAsDmi(Stream imageStream)
@@ -140,8 +151,9 @@ namespace DMI_Parser
                         metadataInserted = true;
                     }
                     
+                    //todo is this needed?
                     //split idat to chunks of 8192
-                    if (c.Data.Length > 8192)
+                    /*if (c.Data.Length > 8192)
                     {
                         Console.WriteLine(c.Data.Length);
                         for (int i = 0; i < c.Data.Length;)
@@ -156,7 +168,7 @@ namespace DMI_Parser
                             PngChunk pngChunk = new PngChunk("IDAT", data);
                         }
                         continue;
-                    }
+                    }*/
                 }
                 outStream.writeChunk(c);
             } while (c.Type != "IEND" && c.Type != "    ");
@@ -179,13 +191,13 @@ namespace DMI_Parser
             
             Point offset = Point.Empty;
 
-            foreach (var state in States)
+            foreach (var state in _states)
             {
                 for (int dir = 0; dir < (int)state.Dirs; dir++)
                 {
                     for (int frame = 0; frame < state.Frames; frame++)
                     {
-                        Bitmap newImage = state.getBitmap(dir, frame);
+                        Bitmap newImage = state.GetBitmap(dir, frame);
 
                         for (int x = 0; x < newImage.Width; x++)
                         {
@@ -215,7 +227,7 @@ namespace DMI_Parser
         private int GetTotalImageCount()
         {
             int res = 0;
-            foreach (var state in States)
+            foreach (var state in _states)
             {
                 res += state.getImageCount();
             }
@@ -229,7 +241,7 @@ namespace DMI_Parser
             res += $"\nversion = {Version}";
             res += $"\n{DmiTab}width = {Width}";
             res += $"\n{DmiTab}height = {Height}";
-            foreach (var state in States)
+            foreach (var state in _states)
             {
                 res += $"\n{state}";
             }
@@ -315,7 +327,7 @@ namespace DMI_Parser
 
                             Bitmap[,] images = imgCutter.CutImages(partialState.Dirs.Value, partialState.Frames.Value);
                             DMIState newState = new DMIState(newDmi, images, partialState);
-                            newDmi.addState(newState, true);
+                            newDmi.AddState(newState);
                             partialState = new RawDmiState();
                         }
 
@@ -425,7 +437,7 @@ namespace DMI_Parser
 
                 Bitmap[,] images = imgCutter.CutImages(partialState.Dirs.Value, partialState.Frames.Value);
                 DMIState newState = new DMIState(newDmi, images, partialState);
-                newDmi.addState(newState, true);
+                newDmi.AddState(newState);
             }
 
             return newDmi;
