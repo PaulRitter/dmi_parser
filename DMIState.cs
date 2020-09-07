@@ -190,7 +190,7 @@ namespace DMI_Parser
             {
                 if (hspot.isInBounds(parent.Width, parent.Height) && !alreadyRegisteredIndexes.Contains(hspot.Index))
                 {
-                    _hotspots.Add(Hotspot.fromRawHotspot(hspot, rawDmiState.Dirs.Value, rawDmiState.Frames.Value));
+                    _hotspots.Add(Hotspot.FromRawHotspot(hspot, rawDmiState.Dirs.Value));
                     alreadyRegisteredIndexes.Add(hspot.Index);
                 }
                 else

@@ -2,14 +2,14 @@ using DMI_Parser.Raw;
 
 namespace DMI_Parser
 {
-    public class Hotspot
+    public struct Hotspot
     {
         public readonly int X;
         public readonly int Y;
         public readonly int Dir;
         public readonly int Frame;
         
-        public static Hotspot fromRawHotspot(RawHotspot rawHotspot, DirCount dirs, int frameCount)
+        public static Hotspot FromRawHotspot(RawHotspot rawHotspot, DirCount dirs)
         {
             int dirCount = (int) dirs;
             return new Hotspot(rawHotspot.X, rawHotspot.Y, rawHotspot.Index % dirCount, rawHotspot.Index / dirCount);
