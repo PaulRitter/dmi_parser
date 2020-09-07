@@ -93,20 +93,14 @@ namespace DMI_Parser.Extended
         {
             MemoryStream memoryStream = new MemoryStream();
             
-            ImageFactory imgF = new ImageFactory();
-            bool first = true;
+            ImageFactory imgF = new ImageFactory()
+                .Load(new Bitmap(Width, Height));
 
             SortLayers(); //better safe than sorry, probably not needed, todo [logging] check if this changes anything at anytime, then provide warning
             for (int i = 0; i < _layers.Count; i++)
             {
                 DmiEXLayer dmiExLayer = _layers[i];
                 if (!dmiExLayer.Visible) continue;
-                if (first)
-                {
-                    imgF.Load(dmiExLayer.GetBitmap());
-                    first = false;
-                    continue;
-                }
 
                 ImageLayer l = new ImageLayer { Image = dmiExLayer.GetBitmap() };
                 imgF.Overlay(l);
