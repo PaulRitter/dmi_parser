@@ -31,7 +31,7 @@ namespace DMI_Parser.Extended
         
         private void OnImageChanged(object sender = null, EventArgs e = null) => ImageChanged?.Invoke(this, EventArgs.Empty); 
 
-        public void AddLayer(DmiEXLayer l)
+        public DmiEXLayer AddLayer(DmiEXLayer l)
         {
             if(_layers.Contains(l)) throw new ArgumentException("Layer already part of image");
             
@@ -42,19 +42,22 @@ namespace DMI_Parser.Extended
 
             l.Changed += OnImageChanged; //any change on the layer means a change on the image
             LayerListChanged?.Invoke(this, EventArgs.Empty);
+            return l;
         }
         
-        public void AddLayer(int index) => AddLayer(new DmiEXLayer(new Bitmap(Width, Height), index));
+        public DmiEXLayer AddLayer(int index) => AddLayer(new DmiEXLayer(new Bitmap(Width, Height), index));
 
-        public void RemoveLayer(int index)
+        public void RemoveLayer(DmiEXLayer l)
         {
             if(_layers.Count == 1) throw new WarningException("You can't remove the only Layer of the image");
-            DmiEXLayer l = GetLayerByIndex(index);
+
             l.IndexChanged -= SortLayers;
             l.Changed -= OnImageChanged;
             _layers.Remove(l);
             LayerListChanged?.Invoke(this, EventArgs.Empty);
         }
+
+        public void RemoveLayer(int index) => RemoveLayer(GetLayerByIndex(index));
         
         public void SetLayerIndex(DmiEXLayer layer, int index)
         {
