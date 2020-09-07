@@ -16,38 +16,32 @@ namespace DMI_Parser.Extended
             {
                 for (int frame = 0; frame < raw.Frames.Value; frame++)
                 {
-                    images[dir, frame] = new DmiEXImage(dmiState.Images[dir, frame]);
+                    images[dir, frame] = new DmiEXImage(dmiState.GetBitmap(dir, frame));
                 }
             }
             
             return new DmiEXState(parent, images, raw);
         }
 
-        public new DmiEXImage[,] Images { get; private set; }
-
-
+        private new DmiEXImage[,] _images;
+        
         public DmiEXState(Dmi parent, DmiEXImage[,] images, RawDmiState rawDmiState) : base(parent, null, rawDmiState)
         {
-            Images = images;
+            _images = images;
         }
 
         public DmiEXState(Dmi parent, string id, Bitmap bitmap) : this(parent, new DmiEXImage[,]{{new DmiEXImage(bitmap)}}, RawDmiState.Default(id))
         {
         }
 
-        public override BitmapImage GetImage(int dir, int frame)
-        {
-            return Images[dir, frame].GetImage();
-        }
-
         public override Bitmap GetBitmap(int dir, int frame)
         {
-            return Images[dir, frame].GetBitmap();
+            return _images[dir, frame].GetBitmap();
         }
 
         protected override void clearImageArray(int dirs, int frames)
         {
-            Images = new DmiEXImage[dirs,frames]; //does not have event call since its used internally only to redo the image array
+            _images = new DmiEXImage[dirs,frames]; //does not have event call since its used internally only to redo the image array
         }
 
         public void OverrideImageArray(DmiEXImage[,] array)
@@ -55,22 +49,22 @@ namespace DMI_Parser.Extended
             Dirs = (DirCount)array.GetLength(0);
             Frames = array.GetLength(1);
 
-            Images = array;
+            _images = array;
             OnImageArrayChanged();
         }
 
-        protected override ICloneable[,] GetImages() => Images;
+        protected override ICloneable[,] GetImages() => _images;
 
-        public override int getImageCount() => Images.Length;
+        public override int getImageCount() => _images.Length;
 
-        protected override void addImage(int dir, int frame, object img)
+        protected override void SetImage(int dir, int frame, object img)
         {
-            Images[dir, frame] = (DmiEXImage) img;
+            _images[dir, frame] = (DmiEXImage) img;
         }
 
-        protected override void resizeImage(int dir, int frame)
+        protected override void ResizeImage(int dir, int frame)
         {
-            Images[dir,frame].Resize(Width, Height);
+            _images[dir,frame].Resize(Width, Height);
         }
     }
 }

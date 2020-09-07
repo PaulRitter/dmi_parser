@@ -268,12 +268,12 @@ namespace DMI_Parser
                 {
                     if (dir < oldImages.GetLength(0) && frame < oldImages.GetLength(1))
                     {
-                        addImage(dir, frame, oldImages[dir, frame]);
+                        SetImage(dir, frame, oldImages[dir, frame]);
                         latestImage = oldImages[dir, frame];
                     }
                     else
                     {
-                        addImage(dir, frame, latestImage == null ? Parent.CreateEmptyImage() : latestImage.Clone());
+                        SetImage(dir, frame, latestImage == null ? Parent.CreateEmptyImage() : latestImage.Clone());
                     }
                 }
             }
@@ -295,12 +295,12 @@ namespace DMI_Parser
             {
                 for (int frame = 0; frame < images.GetLength(1); frame++)
                 {
-                    resizeImage(dir, frame);
+                    ResizeImage(dir, frame);
                 }
             }
         }
 
-        protected virtual void resizeImage(int dir, int frame)
+        protected virtual void ResizeImage(int dir, int frame)
         {
             MemoryStream imageStream = new MemoryStream();
             ImageFactory imgF = new ImageFactory()
@@ -317,7 +317,7 @@ namespace DMI_Parser
         protected virtual void clearImageArray(int dirs, int frames) => _images = new Bitmap[dirs,frames];
 
         protected virtual ICloneable[,] GetImages() => _images;
-        protected virtual void addImage(int dir, int frame, object img)
+        protected virtual void SetImage(int dir, int frame, object img)
         {
             _images[dir, frame] = (Bitmap) img;
         }
