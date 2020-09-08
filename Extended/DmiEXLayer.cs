@@ -13,6 +13,9 @@ namespace DMI_Parser.Extended
     {
         #region properties
 
+        public int Width => _bitmap.Width;
+        public int Height => _bitmap.Height;
+
         private bool _visible = true;
         public bool Visible
         {
@@ -68,6 +71,28 @@ namespace DMI_Parser.Extended
             
             _bitmap.SetPixel(p.X, p.Y, c);
             OnImageChanged();
+        }
+
+        public void SetPixels(PixelChangeItem[] changeItems)
+        {
+            foreach (var item in changeItems)
+            {
+                if(item.Color == GetPixel(item.Point)) continue;
+            
+                _bitmap.SetPixel(item.Point.X, item.Point.Y, item.Color);
+            }
+            OnImageChanged();
+        }
+
+        public void SetPixels(Point[] points, Color c)
+        {
+            PixelChangeItem[] pixelChangeItems = new PixelChangeItem[points.Length];
+            for (int i = 0; i < pixelChangeItems.Length; i++)
+            {
+                pixelChangeItems[i] = new PixelChangeItem(points[i], c);
+            }
+
+            SetPixels(pixelChangeItems);
         }
 
         public Color GetPixel(Point p) => _bitmap.GetPixel(p.X, p.Y);

@@ -73,14 +73,14 @@ namespace DMI_Parser
                     {
                         var oldDelays = Delays;
                         newDelays = new float[_frames];
-                        for (var i = 0; i < _delays.Length && i < oldDelays.Length; i++)
+                        for (var i = 0; i < newDelays.Length && i < oldDelays.Length; i++)
                         {
                             newDelays[i] = oldDelays[i];
                         }
                     }
-                    Delays = newDelays;
+                    _delays = newDelays;
                 }else{ //we wont have delays with only one frame
-                    Delays = null;
+                    _delays = null;
                 }
                 FrameCountChanged?.Invoke(this, EventArgs.Empty);
             }

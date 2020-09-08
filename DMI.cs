@@ -73,7 +73,7 @@ namespace DMI_Parser
             }
         }
 
-        public void AddState(DMIState dmiState)
+        public DMIState AddState(DMIState dmiState)
         {
             //todo deal with duplicate states... seriously, what should i do here?
             /*if (States.Any(state => state.Id == dmiState.Id))
@@ -88,6 +88,8 @@ namespace DMI_Parser
             
             _states.Add(dmiState);
             OnStateAdded(dmiState);
+
+            return dmiState;
         }
 
         protected virtual void OnStateAdded(DMIState state)
@@ -108,7 +110,7 @@ namespace DMI_Parser
             StateListChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public virtual void AddNewState(string name)
+        public virtual DMIState AddNewState(string name)
         {
             RawDmiState raw = RawDmiState.Default(name);
 
@@ -116,7 +118,7 @@ namespace DMI_Parser
             images[0,0] = (Bitmap) CreateEmptyImage();
             
             DMIState dmiState = new DMIState(this, images, raw);
-            AddState(dmiState);
+            return AddState(dmiState);
         }
         
         public void SaveAsDmi(Stream imageStream)

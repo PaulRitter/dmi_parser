@@ -5,7 +5,7 @@ using DMI_Parser.Raw;
 
 namespace DMI_Parser.Extended
 {
-    public class DmiEXState : DMIState
+    public class DmiEXState : DMIState, ICloneable
     {
         public static DmiEXState FromDmiState(DmiEX parent, DMIState dmiState)
         {
@@ -67,6 +67,20 @@ namespace DMI_Parser.Extended
         protected override void ResizeImage(int dir, int frame)
         {
             _images[dir,frame].Resize(Width, Height);
+        }
+
+        public object Clone()
+        {
+            RawDmiState raw = ToRaw();
+            DmiEXImage[,] images = new DmiEXImage[(int)raw.Dirs.Value,raw.Frames.Value];
+            for (int dir = 0; dir < (int)raw.Dirs.Value; dir++)
+            {
+                for (int frame = 0; frame < raw.Frames.Value; frame++)
+                {
+                    images[dir, frame] = (DmiEXImage)_images[dir, frame].Clone();
+                }
+            }
+            return new DmiEXState(Parent, images, raw);
         }
     }
 }

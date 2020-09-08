@@ -26,7 +26,7 @@ namespace DMI_Parser.Extended
             return dmiEx;
         }
 
-        public override void AddNewState(string name)
+        public override DMIState AddNewState(string name)
         {
             RawDmiState raw = RawDmiState.Default(name);
 
@@ -34,7 +34,7 @@ namespace DMI_Parser.Extended
             images[0,0] = (DmiEXImage) CreateEmptyImage();
             
             DmiEXState dmiState = new DmiEXState(this, images, raw);
-            AddState(dmiState);
+            return AddState(dmiState);
         }
     }
 }
