@@ -118,10 +118,11 @@ namespace DMI_Parser.Extended
         {
             Width = width;
             Height = height;
-            foreach (var layer in _layers)
+            for (var i = 0; i < _layers.Count; i++)
             {
-                layer.Resize(width,height);
+                _layers[i].Resize(width, height);
             }
+
             OnImageChanged();
         }
         
