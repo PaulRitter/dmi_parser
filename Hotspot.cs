@@ -1,8 +1,9 @@
+using System;
 using DMI_Parser.Raw;
 
 namespace DMI_Parser
 {
-    public struct Hotspot
+    public class Hotspot
     {
         public readonly int X;
         public readonly int Y;

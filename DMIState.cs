@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media.Imaging;
 using DMI_Parser.Raw;
@@ -111,6 +112,8 @@ namespace DMI_Parser
         public event EventHandler DelayListChanged;
         public void SetDelay(int index, double delay)
         {
+            if (_delays[index].Equals(delay)) return;
+            
             _delays[index] = delay;
             DelayChanged?.Invoke(this, new DelayChangedEventArgs(index));
         }
@@ -162,6 +165,39 @@ namespace DMI_Parser
         public event EventHandler MovementChanged;
         
         private List<Hotspot> _hotspots; //todo hotspots
+        public EventHandler HotspotListChanged;
+
+        public Hotspot GetHotspot(int frameIndex, int dirIndex) =>
+            _hotspots.Find(hotspot => hotspot.Frame == frameIndex && hotspot.Dir == dirIndex);
+
+        public Hotspot AddHotspot(int x, int y, int frameIndex, int dirIndex)
+        {
+            Hotspot hotspotToChange = _hotspots.Find(hotspot => hotspot.Frame == frameIndex && hotspot.Dir == dirIndex);
+            if (hotspotToChange != null)
+            {
+                _hotspots.Remove(hotspotToChange);
+            }
+
+            Hotspot hotspot = new Hotspot(x, y, dirIndex, frameIndex); 
+            _hotspots.Add(hotspot);
+            HotspotListChanged?.Invoke(this, EventArgs.Empty);
+            return hotspot;
+        }
+
+        public void RemoveHotspot(int frameIndex, int dirIndex)
+        {
+            Hotspot hotspot = _hotspots.Find(h => h.Frame == frameIndex && h.Dir == dirIndex);
+            if(hotspot == null) throw new ArgumentException("No Hotspot found with that index");
+
+            RemoveHotspot(hotspot);
+        }
+
+        public void RemoveHotspot(Hotspot hotspot)
+        {
+            _hotspots.Remove(hotspot);
+            HotspotListChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         #endregion
 
         private Bitmap[,] _images; //index is dir, frame
@@ -202,9 +238,8 @@ namespace DMI_Parser
                 }
             }
             
-            // todo validate dir and framecount with delays and picturearray
+            // validate dir and framecount with delays and picturearray
             // if frames, dirs & delays mismatch image, adjust them to the array
-
             if (_images != null && (!rawDmiState.Dirs.HasValue || _images.GetLength(0) != (int)rawDmiState.Dirs.Value))
             {
                 //todo [logging] warning
