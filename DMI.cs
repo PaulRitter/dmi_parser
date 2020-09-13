@@ -355,10 +355,10 @@ namespace DMI_Parser
                         }
 
                         string[] rawDelays = current[1].Split(',');
-                        partialState._delays = new float[rawDelays.Length];
+                        partialState._delays = new double[rawDelays.Length];
                         for (int i = 0; i < rawDelays.Length; i++)
                         {
-                            partialState._delays[i] = float.Parse(rawDelays[i].Replace('.', ','));
+                            partialState._delays[i] = double.Parse(rawDelays[i].Replace('.', ','));
                         }
                         break;
                     case "loop":

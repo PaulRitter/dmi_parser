@@ -61,18 +61,17 @@ namespace DMI_Parser
                 }
 
                 _frames = value;
-                ResizeImageArray(Dirs, Frames);
                 if(_frames > 1)
                 {
-                    float[] newDelays;
+                    double[] newDelays;
                     if (Delays == null)
                     {
-                        newDelays = new float[_frames]; //todo whats the default delay value?
+                        newDelays = new double[_frames]; //todo whats the default delay value?
                     }
                     else
                     {
                         var oldDelays = Delays;
-                        newDelays = new float[_frames];
+                        newDelays = new double[_frames];
                         for (var i = 0; i < newDelays.Length && i < oldDelays.Length; i++)
                         {
                             newDelays[i] = oldDelays[i];
@@ -82,13 +81,15 @@ namespace DMI_Parser
                 }else{ //we wont have delays with only one frame
                     _delays = null;
                 }
+                
+                ResizeImageArray(Dirs, Frames);
                 FrameCountChanged?.Invoke(this, EventArgs.Empty);
             }
         }
         public event EventHandler FrameCountChanged;
         
-        private float[] _delays;
-        public float[] Delays
+        private double[] _delays;
+        public double[] Delays
         {
             get => _delays; //todo does this mean you could edit it from the outside? investigate
             private set
@@ -108,11 +109,13 @@ namespace DMI_Parser
             }
         }
         public event EventHandler DelayListChanged;
-        public void SetDelay(int index, float delay)
+        public void SetDelay(int index, double delay)
         {
             _delays[index] = delay;
-            DelayListChanged?.Invoke(this, EventArgs.Empty);
+            DelayChanged?.Invoke(this, new DelayChangedEventArgs(index));
         }
+
+        public event EventHandler<DelayChangedEventArgs> DelayChanged;
 
         private int _loop; // 0 => infinite
         public int Loop
@@ -226,7 +229,7 @@ namespace DMI_Parser
             {
                 //todo [logging] warning
             
-                float[] new_delays = new float[Frames];
+                double[] new_delays = new double[Frames];
                 for (int i = 0; i < new_delays.Length && i < rawDmiState._delays?.Length; i++)
                 {
                     new_delays[i] = rawDmiState._delays[i];

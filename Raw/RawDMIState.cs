@@ -8,7 +8,7 @@ namespace DMI_Parser.Raw
         public string Id;
         public DirCount? Dirs;
         public int? Frames;
-        public float[] _delays;
+        public double[] _delays;
         public int Loop = 0; // 0 => infinite
         public bool Rewind = false;
         public bool Movement = false;
