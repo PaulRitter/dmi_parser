@@ -9,13 +9,13 @@ namespace DMI_Parser
 
     public enum Dir
     {
+        SOUTH = 0,
         NORTH = 1,
-        EAST = 4,
-        SOUTH = 2,
-        WEST = 8,
-        NORTHEAST = 5,
-        SOUTHEAST = 6,
-        SOUTHWEST = 10,
-        NORTHWEST = 9
+        EAST = 2,
+        WEST = 3,
+        SOUTHEAST = 4,
+        SOUTHWEST = 5,
+        NORTHEAST = 6,
+        NORTHWEST = 7
     }
 }
