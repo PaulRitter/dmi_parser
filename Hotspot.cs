@@ -18,26 +18,20 @@ namespace DMI_Parser
         
         public Hotspot(int x, int y, int dir, int frame)
         {
-            this.X = x; // 18 -> 19
-            this.Y = y; // height - y
+            this.X = x;
+            this.Y = y;
             this.Dir = dir;
             this.Frame = frame;
         }
 
-        public RawHotspot ToRawHotspot(int height, int dirs)
+        public RawHotspot ToRawHotspot(int dirs)
         {
-            //why
-            // actualY = height - savedY
-            int savedY = height - Y;
-            // actualX = savedX + 1
-            int savedX = X - 1;
-
-            return new RawHotspot(savedX, savedY, dirs*Frame + Dir);
+            return new RawHotspot(X, Y, dirs*Frame + Dir + 1);
         }
 
         public string ToSaveableString(int height, int dirs)
         {
-            RawHotspot rawHotspot = ToRawHotspot(height, dirs);
+            RawHotspot rawHotspot = ToRawHotspot(dirs);
             return rawHotspot.ToString();
         }
         

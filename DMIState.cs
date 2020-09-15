@@ -374,7 +374,7 @@ namespace DMI_Parser
             raw.Hotspots = new List<RawHotspot>();
             foreach (var hotspot in _hotspots)
             {
-                raw.Hotspots.Add(hotspot.ToRawHotspot(Height, (int)Dirs));
+                raw.Hotspots.Add(hotspot.ToRawHotspot((int)Dirs));
             }
             raw.Id = Id;
             raw.Loop = Loop;
