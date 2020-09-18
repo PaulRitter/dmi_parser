@@ -101,15 +101,7 @@ namespace DMI_Parser.Extended
         
         public void Resize(int width, int height)
         {
-            MemoryStream imageStream = new MemoryStream();
-            ImageFactory imgF = new ImageFactory()
-                .Load(_bitmap)
-                .Resize(new ResizeLayer(new Size(width, height), ResizeMode.Crop, AnchorPosition.TopLeft))
-                .Format(new PngFormat())
-                .Save(imageStream);
-            
-            _bitmap = new Bitmap(imageStream);
-            imageStream.Close();
+            _bitmap = _bitmap.Resized(width, height);
             OnImageChanged();
         }
 

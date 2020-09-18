@@ -342,16 +342,7 @@ namespace DMI_Parser
 
         protected virtual void ResizeImage(int dir, int frame)
         {
-            MemoryStream imageStream = new MemoryStream();
-            ImageFactory imgF = new ImageFactory()
-                .Load(_images[dir,frame])
-                .Resize(new ResizeLayer(new Size(Parent.Width, Parent.Height), ResizeMode.Crop, AnchorPosition.TopLeft))
-                .Format(new PngFormat())
-                .Save(imageStream);
-            
-            Bitmap newBitmap = new Bitmap(imageStream);
-            imageStream.Close();
-            _images[dir, frame] = newBitmap;
+            _images[dir, frame] = _images[dir, frame].Resized(Parent.Width, Parent.Height);
         }
 
         protected virtual void clearImageArray(int dirs, int frames) => _images = new Bitmap[dirs,frames];
