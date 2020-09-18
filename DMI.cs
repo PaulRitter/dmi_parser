@@ -236,7 +236,16 @@ namespace DMI_Parser
         public static Dmi FromFile(String filepath)
         {
             FileStream stream = File.Open(filepath, FileMode.Open); //todo catch errors and close stream
-            Dmi result = FromFile(stream);
+            Dmi result;
+            try
+            {
+                result = FromFile(stream);
+            }
+            catch (Exception e)
+            {
+                stream.Close();
+                throw;
+            }
             stream.Close();
             return result;
         }
