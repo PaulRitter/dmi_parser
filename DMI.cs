@@ -73,7 +73,7 @@ namespace DMI_Parser
             }
         }
 
-        public DMIState AddState(DMIState dmiState)
+        public DMIState AddState(DMIState dmiState, int index = -1)
         {
             //todo deal with duplicate states... seriously, what should i do here?
             /*if (States.Any(state => state.Id == dmiState.Id))
@@ -86,12 +86,21 @@ namespace DMI_Parser
                 throw new ArgumentException("State already belongs to this DMI");
             }
             
-            _states.Add(dmiState);
+            if(index == -1)
+                _states.Add(dmiState);
+            else
+                _states.Insert(index, dmiState);
             OnStateAdded(dmiState);
 
             return dmiState;
         }
 
+        public int GetStateIndex(DMIState state)
+        {
+            if (!_states.Contains(state)) return -1;
+            return _states.IndexOf(state);
+        }
+        
         protected virtual void OnStateAdded(DMIState state)
         {
             SizeChanged += state.resizeImages;
